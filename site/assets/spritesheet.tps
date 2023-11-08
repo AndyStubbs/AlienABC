@@ -124,7 +124,7 @@
             <key>data</key>
             <struct type="DataFile">
                 <key>name</key>
-                <filename></filename>
+                <filename>spritesheet.json</filename>
             </struct>
         </map>
         <key>multiPackMode</key>
@@ -1063,22 +1063,6 @@
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
-            <key type="filename">images/bg.png</key>
-            <key type="filename">images/bg_castle.png</key>
-            <struct type="IndividualSpriteSettings">
-                <key>pivotPoint</key>
-                <point_f>0,0</point_f>
-                <key>spriteScale</key>
-                <double>1</double>
-                <key>scale9Enabled</key>
-                <false/>
-                <key>scale9Borders</key>
-                <rect>64,64,128,128</rect>
-                <key>scale9Paddings</key>
-                <rect>64,64,128,128</rect>
-                <key>scale9FromFile</key>
-                <false/>
-            </struct>
         </map>
         <key>fileLists</key>
         <map type="SpriteSheetMap">
@@ -1086,8 +1070,6 @@
             <struct type="SpriteSheet">
                 <key>files</key>
                 <array>
-                    <filename>images/bg.png</filename>
-                    <filename>images/bg_castle.png</filename>
                     <filename>images/Enemies</filename>
                     <filename>images/HUD</filename>
                     <filename>images/Items</filename>
