@@ -190,9 +190,51 @@
 
 	function step() {
 		updatePosition( game.player );
+		applyControls( game.player );
+	}
+
+	function updatePosition( actor ) {
+		const body = actor.body;
+		const pos = game.container.toLocal(
+			new PIXI.Point( body.position.x, body.position.y )
+		);
+		actor.container.x = pos.x;
+		actor.container.y = pos.y;
+
+		// Update the sprite rotation.
+		actor.container.rotation = body.angle;
+
+		// Draw a wire frame around the sprite using the body
+		// vertices.
+		if( actor.debug ) {
+			actor.debug.clear();
+			if( actor.isGrounded ) {
+				actor.debug.lineStyle( 1, "#0000ff" );
+			} else {
+				actor.debug.lineStyle( 1, "#00ff00" );
+			}
+			actor.debug.beginFill( "#000000", 0 );
+			let pos = game.container.toLocal(
+				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
+			);
+			actor.debug.moveTo( pos.x, pos.y );
+			for( let i = 1; i < body.vertices.length; i++ ) {
+				pos = game.container.toLocal(
+					new PIXI.Point( body.vertices[ i ].x, body.vertices[ i ].y )
+				);
+				actor.debug.lineTo( pos.x, pos.y );
+			}
+			pos = game.container.toLocal(
+				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
+			);
+			actor.debug.lineTo( pos.x, pos.y );
+			actor.debug.endFill();
+		}
+	}
+
+	function applyControls( player ) {
 
 		// Apply player movement for platformer controls.
-		const player = game.player;
 		const keys = game.keys;
 		const speed = 5;
 
@@ -233,12 +275,13 @@
 			player.sprite.visible = false;
 		}
 
+		// Check if falling, allow for a little bit of leeway.
+		if( player.isGrounded && player.body.velocity.y > MAX_VELOCITY_Y_FOR_GROUNDED ) {
+			player.isGrounded = false;
+		}
+
 		// Apply Jumping
 		if( keys.ArrowUp ) {
-			// Don't allow player to jump if falling, allow for a little bit of leeway.
-			if( player.isGrounded && player.body.velocity.y > MAX_VELOCITY_Y_FOR_GROUNDED ) {
-				player.isGrounded = false;
-			}
 			if( player.isGrounded ) {
 				Matter.Body.applyForce(
 					player.body, player.body.position, { "x": 0, "y": JUMP_FORCE }
@@ -255,41 +298,6 @@
 			player.sprite.visible = false;
 			player.walkAnimation.visible = false;
 			player.walkAnimation.gotoAndStop( 0 );
-		}
-	}
-
-	function updatePosition( actor ) {
-		const body = actor.body;
-		const pos = game.container.toLocal(
-			new PIXI.Point( body.position.x, body.position.y )
-		);
-		actor.container.x = pos.x;
-		actor.container.y = pos.y;
-
-		// Update the sprite rotation.
-		actor.container.rotation = body.angle;
-
-		// Draw a wire frame around the sprite using the body
-		// vertices.
-		if( actor.debug ) {
-			actor.debug.clear();
-			actor.debug.lineStyle( 1, "#00ff00" );
-			actor.debug.beginFill( "#000000", 0 );
-			let pos = game.container.toLocal(
-				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
-			);
-			actor.debug.moveTo( pos.x, pos.y );
-			for( let i = 1; i < body.vertices.length; i++ ) {
-				pos = game.container.toLocal(
-					new PIXI.Point( body.vertices[ i ].x, body.vertices[ i ].y )
-				);
-				actor.debug.lineTo( pos.x, pos.y );
-			}
-			pos = game.container.toLocal(
-				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
-			);
-			actor.debug.lineTo( pos.x, pos.y );
-			actor.debug.endFill();
 		}
 	}
 
