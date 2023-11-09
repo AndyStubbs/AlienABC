@@ -126,6 +126,12 @@
 		player.sprite.anchor.set( 0.5, 0.5 );
 		player.container.addChild( player.sprite );
 
+		// Create the jump sprite.
+		player.jumpSprite = new PIXI.Sprite( g.spritesheet.textures[ "p1_jump.png" ] );
+		player.jumpSprite.anchor.set( 0.5, 0.5 );
+		player.jumpSprite.visible = false;
+		player.container.addChild( player.jumpSprite );
+
 		// Create the player walking animation.
 		const frames = [];
 		for( let i = 1; i <= 11; i++ ) {
@@ -189,30 +195,46 @@
 		const player = game.player;
 		const keys = game.keys;
 		const speed = 5;
-		player.isWalking = false;
+
+		// Apply movement.
+		let isWalking = false;
 		if( keys.ArrowLeft ) {
-			Matter.Body.translate( player.body, { "x": -speed, "y": 0 } );
-			player.isWalking = true;
-			player.walkAnimation.visible = true;
+			isWalking = true;
+
+			// Set the sprite orientation.
 			player.walkAnimation.scale.x = -1;
 			player.sprite.scale.x = -1;
-			player.walkAnimation.play();
-			player.sprite.visible = false;
+			player.jumpSprite.scale.x = -1;
+
+			// Apply the movement.
+			Matter.Body.translate( player.body, { "x": -speed, "y": 0 } );
+
 		} else if( keys.ArrowRight ) {
-			Matter.Body.translate( player.body, { "x": speed, "y": 0 } );
-			player.isWalking = true;
-			player.walkAnimation.visible = true;
+
+			isWalking = true;
+
+			// Set the sprite orientation.
 			player.walkAnimation.scale.x = 1;
 			player.sprite.scale.x = 1;
-			player.walkAnimation.play();
-			player.sprite.visible = false
+			player.jumpSprite.scale.x = 1;
+
+			// Apply the movement.
+			Matter.Body.translate( player.body, { "x": speed, "y": 0 } );
+
 		} else {
 			player.walkAnimation.visible = false;
 			player.walkAnimation.gotoAndStop( 0 );
 			player.sprite.visible = true;
 		}
-		if( keys.ArrowUp ) {
 
+		if( isWalking && player.isGrounded ) {
+			player.walkAnimation.visible = true;
+			player.walkAnimation.play();
+			player.sprite.visible = false;
+		}
+
+		// Apply Jumping
+		if( keys.ArrowUp ) {
 			// Don't allow player to jump if falling, allow for a little bit of leeway.
 			if( player.isGrounded && player.body.velocity.y > MAX_VELOCITY_Y_FOR_GROUNDED ) {
 				player.isGrounded = false;
@@ -223,6 +245,16 @@
 				);
 				player.isGrounded = false;
 			}
+		}
+
+		// Update the jump sprite visibility.
+		if( player.isGrounded ) {
+			player.jumpSprite.visible = false;
+		} else {
+			player.jumpSprite.visible = true;
+			player.sprite.visible = false;
+			player.walkAnimation.visible = false;
+			player.walkAnimation.gotoAndStop( 0 );
 		}
 	}
 
