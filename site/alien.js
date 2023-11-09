@@ -19,24 +19,36 @@ const g = {};
 		} );
 		document.body.appendChild( g.app.view );
 
+		// Resize the PIXI application.
+		window.addEventListener( "resize", resize );
+		resize();
+		g.initUI();
+		g.showLoadingScreen();
+
 		// Load the assets
 		( async () => {
 			const backgroundPromise = PIXI.Assets.load( "assets/backgrounds.json" );
+			const uiPromise = PIXI.Assets.load( "assets/ui.json" );
 			const spritesheetPromise = PIXI.Assets.load( "assets/spritesheet.json" );
-			g.backgrounds = await backgroundPromise;
 
 			// Create the background.
+			g.backgrounds = await backgroundPromise;
 			g.background = new PIXI.TilingSprite(
 				g.backgrounds.textures[ "bg_purple.png" ], g.app.screen.width, g.app.screen.height
 			);
-			g.app.stage.addChild( g.background );
+			g.app.stage.addChildAt( g.background, 0 );
 
 			// Resize the background.
-			window.addEventListener( "resize", resize );
 			resize();
+
+			// Create the UI.
+			g.uiSprites = await uiPromise;
 
 			// Create the spritesheet.
 			g.spritesheet = await spritesheetPromise;
+
+			// Show the title screen.
+			g.hideLoadingScreen( g.showTitleScreen );
 		} )();
 	}
 
@@ -50,51 +62,11 @@ const g = {};
 		}
 		g.app.stage.scale.x = g.scale.x;
 		g.app.stage.scale.y = g.scale.y;
-		g.background.width = g.app.screen.width / g.scale.x;
-		g.background.height = g.app.screen.height / g.scale.y;
+		if( g.background ) {
+			g.background.width = g.app.screen.width / g.scale.x;
+			g.background.height = g.app.screen.height / g.scale.y;
+		}
 		g.app.renderer.resize( window.innerWidth, window.innerHeight );
 	}
 
 } )();
-
-/*
-// Run the simulation.
-run_simulation();
-
-// OR using the await syntax:
-async function run_simulation() {
-	//const RAPIER = await import('https://cdn.skypack.dev/@dimforge/rapier2d-compat');
-	//await RAPIER.init();
-	// Run the simulation.
-	// Use the RAPIER module here.
-	let gravity = { x: 0.0, y: -9.81 };
-	let world = new RAPIER.World(gravity);
-
-	// Create the ground
-	let groundColliderDesc = RAPIER.ColliderDesc.cuboid(10.0, 0.1);
-	world.createCollider(groundColliderDesc);
-
-	// Create a dynamic rigid-body.
-	let rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
-			.setTranslation(0.0, 1.0);
-	let rigidBody = world.createRigidBody(rigidBodyDesc);
-
-	// Create a cuboid collider attached to the dynamic rigidBody.
-	let colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5);
-	let collider = world.createCollider(colliderDesc, rigidBody);
-
-	// Game loop. Replace by your own game loop system.
-	let gameLoop = () => {
-	// Ste the simulation forward.  
-	world.step();
-
-	// Get and print the rigid-body's position.
-	let position = rigidBody.translation();
-	console.log("Rigid-body position: ", position.x, position.y);
-
-	setTimeout(gameLoop, 16);
-	};
-
-	gameLoop();
-}
-*/

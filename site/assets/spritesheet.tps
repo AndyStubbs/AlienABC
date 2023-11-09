@@ -847,6 +847,36 @@
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
+            <key type="filename">images/Items/ship.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>44,43,87,87</rect>
+                <key>scale9Paddings</key>
+                <rect>44,43,87,87</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/Items/star2.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>63,63,126,126</rect>
+                <key>scale9Paddings</key>
+                <rect>63,63,126,126</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
             <key type="filename">images/Player/p1_duck.png</key>
             <key type="filename">images/Player/p3_duck.png</key>
             <struct type="IndividualSpriteSettings">
@@ -1063,6 +1093,262 @@
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
+            <key type="filename">images/UFOs/dome.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>21,25,41,49</rect>
+                <key>scale9Paddings</key>
+                <rect>21,25,41,49</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/laserBeige1.png</key>
+            <key type="filename">images/UFOs/laserBlue1.png</key>
+            <key type="filename">images/UFOs/laserGreen1.png</key>
+            <key type="filename">images/UFOs/laserPink1.png</key>
+            <key type="filename">images/UFOs/laserYellow1.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>10,25,19,50</rect>
+                <key>scale9Paddings</key>
+                <rect>10,25,19,50</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/laserBeige2.png</key>
+            <key type="filename">images/UFOs/laserBlue2.png</key>
+            <key type="filename">images/UFOs/laserGreen2.png</key>
+            <key type="filename">images/UFOs/laserPink2.png</key>
+            <key type="filename">images/UFOs/laserYellow2.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>17,25,34,50</rect>
+                <key>scale9Paddings</key>
+                <rect>17,25,34,50</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/laserBeige3.png</key>
+            <key type="filename">images/UFOs/laserBlue3.png</key>
+            <key type="filename">images/UFOs/laserGreen3.png</key>
+            <key type="filename">images/UFOs/laserPink3.png</key>
+            <key type="filename">images/UFOs/laserYellow3.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>23,9,47,17</rect>
+                <key>scale9Paddings</key>
+                <rect>23,9,47,17</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/laserBeige_burst.png</key>
+            <key type="filename">images/UFOs/laserBlue_burst.png</key>
+            <key type="filename">images/UFOs/laserGreen_burst.png</key>
+            <key type="filename">images/UFOs/laserPink_burst.png</key>
+            <key type="filename">images/UFOs/laserYellow_burst.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>47,47,94,94</rect>
+                <key>scale9Paddings</key>
+                <rect>47,47,94,94</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/laserBeige_groundBurst.png</key>
+            <key type="filename">images/UFOs/laserBlue_groundBurst.png</key>
+            <key type="filename">images/UFOs/laserGreen_groundBurst.png</key>
+            <key type="filename">images/UFOs/laserPink_groundBurst.png</key>
+            <key type="filename">images/UFOs/laserYellow_groundBurst.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>43,20,86,39</rect>
+                <key>scale9Paddings</key>
+                <rect>43,20,86,39</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipBeige.png</key>
+            <key type="filename">images/UFOs/shipBeige_damage1.png</key>
+            <key type="filename">images/UFOs/shipBeige_damage2.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,17,62,33</rect>
+                <key>scale9Paddings</key>
+                <rect>31,17,62,33</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipBeige_manned.png</key>
+            <key type="filename">images/UFOs/shipGreen_manned.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,31,62,61</rect>
+                <key>scale9Paddings</key>
+                <rect>31,31,62,61</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipBlue.png</key>
+            <key type="filename">images/UFOs/shipBlue_damage1.png</key>
+            <key type="filename">images/UFOs/shipBlue_damage2.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,23,62,45</rect>
+                <key>scale9Paddings</key>
+                <rect>31,23,62,45</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipBlue_manned.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,36,62,73</rect>
+                <key>scale9Paddings</key>
+                <rect>31,36,62,73</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipGreen.png</key>
+            <key type="filename">images/UFOs/shipGreen_damage1.png</key>
+            <key type="filename">images/UFOs/shipGreen_damage2.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,17,62,34</rect>
+                <key>scale9Paddings</key>
+                <rect>31,17,62,34</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipPink.png</key>
+            <key type="filename">images/UFOs/shipPink_damage.png</key>
+            <key type="filename">images/UFOs/shipPink_damage1.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,18,62,36</rect>
+                <key>scale9Paddings</key>
+                <rect>31,18,62,36</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipPink_manned.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,32,62,63</rect>
+                <key>scale9Paddings</key>
+                <rect>31,32,62,63</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipYellow.png</key>
+            <key type="filename">images/UFOs/shipYellow_damage1.png</key>
+            <key type="filename">images/UFOs/shipYellow_damage2.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,16,62,31</rect>
+                <key>scale9Paddings</key>
+                <rect>31,16,62,31</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">images/UFOs/shipYellow_manned.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0,0</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>31,27,62,54</rect>
+                <key>scale9Paddings</key>
+                <rect>31,27,62,54</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
         </map>
         <key>fileLists</key>
         <map type="SpriteSheetMap">
@@ -1075,6 +1361,7 @@
                     <filename>images/Items</filename>
                     <filename>images/Player</filename>
                     <filename>images/Tiles</filename>
+                    <filename>images/UFOs</filename>
                 </array>
             </struct>
         </map>
