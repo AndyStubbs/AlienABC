@@ -5,7 +5,7 @@
 	const game = {};
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 1.8;
 	const JUMP_FORCE = -0.25;
-	const DEBUG = true;
+	const DEBUG = false;
 
 	g.loadLevel = async function ( name ) {
 		if( !game.tiles ) {
@@ -110,15 +110,33 @@
 		// Adjust the player position to account for the player sprite's height.
 		obj.y -= 500;
 
+		// Get the position of the player sprite in the game container.
+		const pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
+
+		// Create the player container.
+		player.container = new PIXI.Container();
+		player.container.x = pos.x;
+		player.container.y = pos.y;
+		player.container.scale.x = 1 / g.app.stage.scale.x;
+		player.container.scale.y = 1 / g.app.stage.scale.y;
+		container.addChild( player.container );
+
 		// Create the player sprite
 		player.sprite = new PIXI.Sprite( g.spritesheet.textures[ "p1_front.png" ] );
 		player.sprite.anchor.set( 0.5, 0.5 );
-		const pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
-		player.sprite.x = pos.x;
-		player.sprite.y = pos.y;
-		player.sprite.scale.x = 1 / g.app.stage.scale.x;
-		player.sprite.scale.y = 1 / g.app.stage.scale.y;
-		container.addChild( player.sprite );
+		player.container.addChild( player.sprite );
+
+		// Create the player walking animation.
+		const frames = [];
+		for( let i = 1; i <= 11; i++ ) {
+			const id = i < 10 ? "0" + i : i;
+			frames.push( g.spritesheet.textures[ "p1_walk/p1_walk" + id + ".png" ] );
+		}
+		player.walkAnimation = new PIXI.AnimatedSprite( frames );
+		player.walkAnimation.anchor.set( 0.5, 0.5 );
+		player.walkAnimation.animationSpeed = 0.3;
+		player.walkAnimation.visible = false;
+		player.container.addChild( player.walkAnimation );
 
 		// Create the player physics body
 		const width = player.sprite.width / player.sprite.scale.x;
@@ -142,8 +160,8 @@
 
 		if( DEBUG ) {
 			// Add a debug graphics object to the sprite.
-			player.sprite.debug = new PIXI.Graphics();
-			game.container.addChild( player.sprite.debug );
+			player.debug = new PIXI.Graphics();
+			game.container.addChild( player.debug );
 		}
 	}
 
@@ -165,17 +183,33 @@
 	}
 
 	function step() {
-		updateSpritePosition( game.player.sprite, game.player.body );
+		updatePosition( game.player );
 
 		// Apply player movement for platformer controls.
 		const player = game.player;
 		const keys = game.keys;
 		const speed = 5;
+		player.isWalking = false;
 		if( keys.ArrowLeft ) {
 			Matter.Body.translate( player.body, { "x": -speed, "y": 0 } );
-		}
-		if( keys.ArrowRight ) {
+			player.isWalking = true;
+			player.walkAnimation.visible = true;
+			player.walkAnimation.scale.x = -1;
+			player.sprite.scale.x = -1;
+			player.walkAnimation.play();
+			player.sprite.visible = false;
+		} else if( keys.ArrowRight ) {
 			Matter.Body.translate( player.body, { "x": speed, "y": 0 } );
+			player.isWalking = true;
+			player.walkAnimation.visible = true;
+			player.walkAnimation.scale.x = 1;
+			player.sprite.scale.x = 1;
+			player.walkAnimation.play();
+			player.sprite.visible = false
+		} else {
+			player.walkAnimation.visible = false;
+			player.walkAnimation.gotoAndStop( 0 );
+			player.sprite.visible = true;
 		}
 		if( keys.ArrowUp ) {
 
@@ -192,37 +226,38 @@
 		}
 	}
 
-	function updateSpritePosition( sprite, body ) {
+	function updatePosition( actor ) {
+		const body = actor.body;
 		const pos = game.container.toLocal(
 			new PIXI.Point( body.position.x, body.position.y )
 		);
-		sprite.x = pos.x;
-		sprite.y = pos.y;
+		actor.container.x = pos.x;
+		actor.container.y = pos.y;
 
 		// Update the sprite rotation.
-		sprite.rotation = body.angle;
-		
+		actor.container.rotation = body.angle;
+
 		// Draw a wire frame around the sprite using the body
 		// vertices.
-		if( sprite.debug ) {
-			sprite.debug.clear();
-			sprite.debug.lineStyle( 1, "#00ff00" );
-			sprite.debug.beginFill( "#000000", 0 );
+		if( actor.debug ) {
+			actor.debug.clear();
+			actor.debug.lineStyle( 1, "#00ff00" );
+			actor.debug.beginFill( "#000000", 0 );
 			let pos = game.container.toLocal(
 				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
 			);
-			sprite.debug.moveTo( pos.x, pos.y );
+			actor.debug.moveTo( pos.x, pos.y );
 			for( let i = 1; i < body.vertices.length; i++ ) {
 				pos = game.container.toLocal(
 					new PIXI.Point( body.vertices[ i ].x, body.vertices[ i ].y )
 				);
-				sprite.debug.lineTo( pos.x, pos.y );
+				actor.debug.lineTo( pos.x, pos.y );
 			}
 			pos = game.container.toLocal(
 				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
 			);
-			sprite.debug.lineTo( pos.x, pos.y );
-			sprite.debug.endFill();
+			actor.debug.lineTo( pos.x, pos.y );
+			actor.debug.endFill();
 		}
 	}
 
