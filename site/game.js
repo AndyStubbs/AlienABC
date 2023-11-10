@@ -22,9 +22,9 @@
 			return;
 		}
 
-		game.lastBodyId = 0;
 		game.bodies = [];
-		game.actorsMap = {};
+		game.itemsMap = {};
+		game.items = [];
 
 		// Create the level container.
 		if( game.container ) {
@@ -65,6 +65,7 @@
 		Matter.Runner.run( game.runner, game.engine );
 
 		// Run the graphics step.
+		game.elapsed = 0;
 		g.app.ticker.add( step );
 
 		// Setup the collider event
@@ -109,12 +110,16 @@
 				createPlayer( obj, container );
 			} else if( obj.type === "ground" ) {
 				createGround( obj );
+			} else if( obj.type === "letter" ) {
+				createPickupItem( obj, container );
 			}
 		} );
 	}
 
 	function createPlayer( obj, container ) {
 		const player = {};
+
+		player.type = "player";
 
 		// Adjust the player position to account for the player sprite's height.
 		obj.y -= 500;
@@ -163,11 +168,12 @@
 			height,
 			{
 				"inertia": Infinity,
-				"customData": { "type": "actor" }
+				"customData": { "type": "actor", "isPlayer": true }
 			}
 		);
-		game.lastBodyId++;
-		game.actorsMap[ player.body.id ] = player;
+
+		game.itemsMap[ player.body.id ] = player;
+		game.items.push( player );
 		game.bodies.push( player.body );
 
 		// Assign the player to the game object.
@@ -197,52 +203,127 @@
 		game.bodies.push( body );
 	}
 
-	function step() {
+	function createPickupItem( obj, container ) {
+		const item = {};
+
+		item.type = "pickup";
+		item.baseX = obj.x;
+		item.baseY = obj.y;
+
+		// Get the position of the item in the game container.
+		const pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
+
+		// Create the item container.
+		item.container = new PIXI.Container();
+		item.container.x = pos.x;
+		item.container.y = pos.y;
+		item.container.scale.x = 1 / g.app.stage.scale.x;
+		item.container.scale.y = 1 / g.app.stage.scale.y;
+		container.addChild( item.container );
+
+		let width = 0;
+		let height = 0;
+
+		// Create the item
+		if( obj.type === "letter" ) {
+			item.pixiText = new PIXI.Text( obj.name, {
+				"fontFamily": "Arial",
+				"fontSize": 36,
+				"fill": "#ffffff",
+				"stroke": "#000000",
+				"strokeThickness": 3,
+				"dropShadow": true,
+				"dropShadowColor": "#000000",
+				"dropShadowBlur": 4,
+				"align": "center"
+			} );
+			item.pixiText.anchor.set( 0.5, 0.5 );
+			item.container.addChild( item.pixiText );
+
+			width = ( item.pixiText.width - 8 ) / item.pixiText.scale.x;
+			height = ( item.pixiText.height - 18 ) / item.pixiText.scale.y;
+		}
+
+		// Create the item physics body
+		item.body = Matter.Bodies.rectangle(
+			obj.x,
+			obj.y,
+			width,
+			height,
+			{
+				"isStatic": true,
+				"isSensor": true,
+				"customData": { "type": "pickup" }
+			}
+		);
+
+		game.pickup = item;
+		game.itemsMap[ item.body.id ] = item;
+		game.items.push( item );
+		game.bodies.push( item.body );
+
+		// Add a debug graphics object to the sprite.
+		if( DEBUG ) {
+			item.debug = new PIXI.Graphics();
+			game.container.addChild( item.debug );
+		}
+	}
+
+	function step( delta ) {
+		game.elapsed += delta;
 		moveCamera();
-		updatePosition( game.player );
+		for( let i = 0; i < game.items.length; i++ ) {
+			if( game.items[ i ].type === "pickup" ) {
+				// Bob the item up and down.
+				const item = game.items[ i ];
+				const body = item.body;
+				const distance = body.position.y - item.baseY;
+				const movement = Math.sin( game.elapsed / 75 ) * 3 - distance / 10;
+				Matter.Body.translate( body, { "x": 0, "y": movement } );
+			}
+			updatePosition( game.items[ i ] );
+		}
 		applyControls( game.player );
 	}
 
-	function updatePosition( actor ) {
-		const body = actor.body;
-		const pos = actor.container.parent.toLocal(
+	function updatePosition( item ) {
+		const body = item.body;
+		const pos = item.container.parent.toLocal(
 			new PIXI.Point( body.position.x, body.position.y )
 		);
-		actor.container.x = pos.x + game.container.x;
-		actor.container.y = pos.y + game.container.y;
-		//actor.container.x = body.position.x;
-		//actor.container.y = body.position.y;
+		item.container.x = pos.x + game.container.x;
+		item.container.y = pos.y + game.container.y;
 
 		// Update the sprite rotation.
-		actor.container.rotation = body.angle;
+		item.container.rotation = body.angle;
 
 		// Draw a wire frame around the sprite using the body vertices.
-		if( actor.debug ) {
-			actor.debug.clear();
-			if( actor.isGrounded ) {
-				actor.debug.lineStyle( 1, "#0000ff" );
+		if( item.debug ) {
+			item.debug.clear();
+			if( item.isGrounded ) {
+				item.debug.lineStyle( 1, "#0000ff" );
 			} else {
-				actor.debug.lineStyle( 1, "#00ff00" );
+				item.debug.lineStyle( 1, "#00ff00" );
 			}
-			actor.debug.beginFill( "#000000", 0 );
+			item.debug.beginFill( "#000000", 0 );
 			let pos = game.container.toLocal(
 				new PIXI.Point(
 					body.vertices[ 0 ].x,
 					body.vertices[ 0 ].y
 				)
 			);
-			actor.debug.moveTo( pos.x + game.container.x, pos.y + game.container.y );
+			item.debug.moveTo( pos.x + game.container.x, pos.y + game.container.y );
 			for( let i = 1; i < body.vertices.length; i++ ) {
 				pos = game.container.toLocal(
 					new PIXI.Point( body.vertices[ i ].x, body.vertices[ i ].y )
 				);
-				actor.debug.lineTo( pos.x + game.container.x, pos.y + game.container.y );
+				item.debug.lineTo( pos.x + game.container.x, pos.y + game.container.y );
 			}
 			pos = game.container.toLocal(
 				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
 			);
-			actor.debug.lineTo( pos.x + game.container.x, pos.y + game.container.y );
-			actor.debug.endFill();
+			item.debug.lineTo( pos.x + game.container.x, pos.y + game.container.y );
+			item.debug.endFill();
 		}
 	}
 
@@ -372,12 +453,48 @@
 			const pair = pairs[ i ];
 			const a = pair.bodyA.customData;
 			const b = pair.bodyB.customData;
+
+			console.log( a.type, b.type );
 			const penetration = pair.collision.penetration;
+
+			// Check for an actor hitting the ground
 			if( a.type === "actor" && b.type === "ground" && penetration.y < 0 ) {
-				game.actorsMap[ pair.bodyA.id ].isGrounded = true;
+				game.itemsMap[ pair.bodyA.id ].isGrounded = true;
 			} else if ( a.type === "ground" && b.type === "actor" && penetration.y > 0) {
-				game.actorsMap[ pair.bodyB.id ].isGrounded = true;
+				game.itemsMap[ pair.bodyB.id ].isGrounded = true;
 			}
+
+			// Check for a player hitting a pickup item.
+			let player;
+			let pickup;
+			if( a.isPlayer && b.type === "pickup" ) {
+				player = game.itemsMap[ pair.bodyA.id ];
+				pickup = game.itemsMap[ pair.bodyB.id ];
+			} else if( a.type === "pickup" && b.isPlayer ) {
+				player = game.itemsMap[ pair.bodyB.id ];
+				pickup = game.itemsMap[ pair.bodyA.id ];
+			}
+
+			if( player && pickup ) {
+				pickupItem( player, pickup );
+			}
+		}
+	}
+
+	function pickupItem( player, pickup ) {
+		// Remove the item from the physics world.
+		Matter.Composite.remove( game.engine.world, pickup.body );
+
+		// Remove the item from the game.
+		game.items.splice( game.items.indexOf( pickup ), 1 );
+		delete game.itemsMap[ pickup.body.id ];
+
+		// Remove the item from the display.
+		pickup.container.parent.removeChild( pickup.container );
+		pickup.container.destroy();
+
+		if( DEBUG ) {
+			game.container.removeChild( pickup.debug );
 		}
 	}
 
