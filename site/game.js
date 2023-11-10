@@ -270,9 +270,8 @@
 				const item = game.items[ i ];
 				const body = item.body;
 				const distance = body.position.y - item.baseY;
-				//const bobOffset = ( game.elapsed / 75 ) + ( Math.PI * 2 ) / i;
-				const bobOffset = ( game.elapsed / 75 );
-				const movement = Math.sin( bobOffset ) * 3 - distance / 10;
+				const bobOffset = ( game.elapsed / 75 ) + ( i / ( Math.PI / 60 ) );
+				const movement = Math.sin( bobOffset ) * 3 - distance / 5;
 				Matter.Body.translate( body, { "x": 0, "y": movement } );
 			}
 
