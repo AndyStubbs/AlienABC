@@ -3,8 +3,8 @@
 ( function () {
 
 	const game = {};
-	const MAX_VELOCITY_Y_FOR_GROUNDED = 1.8;
-	const JUMP_FORCE = -0.25;
+	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
+	const JUMP_FORCE = -0.125;
 	const DEBUG = true;
 
 	g.loadLevel = async function ( name ) {
@@ -167,6 +167,7 @@
 			"align": "center"
 		};
 		let textOffsetY = 0;
+		let bodyWidthModifier = 1;
 
 		// parse properties
 		if( obj.properties ) {
@@ -206,6 +207,7 @@
 				"walk", "p1_walk/p1_walk", 11
 			];
 			bodyType = "actor";
+			bodyWidthModifier = 0.5;
 		} else {
 			bodyType = "none";
 		}
@@ -221,8 +223,8 @@
 		item.container.scale.y = 1 / g.app.stage.scale.y;
 		container.addChild( item.container );
 
-		let width = 0;
-		let height = 0;
+		let bodyWidth = 0;
+		let bodyHeight = 0;
 
 		// Create the item text
 		if( item.text ) {
@@ -230,8 +232,8 @@
 			item.pixiText.anchor.set( 0.5, 0.5 );
 			item.container.addChild( item.pixiText );
 
-			width = ( item.pixiText.width - 8 ) / item.pixiText.scale.x;
-			height = ( item.pixiText.height - 18 ) / item.pixiText.scale.y;
+			bodyWidth = ( item.pixiText.width - 8 ) / item.pixiText.scale.x;
+			bodyHeight = ( item.pixiText.height - 18 ) / item.pixiText.scale.y;
 
 			if( obj.width ) {
 				obj.x += obj.width / 2;
@@ -273,8 +275,8 @@
 			item.animation.play();
 
 			// Update the size and position of the item to match the animation.
-			width = item.animation.width;
-			height = item.animation.height;
+			bodyWidth = item.animation.width * bodyWidthModifier;
+			bodyHeight = item.animation.height;
 			obj.y -= item.animation.height / 2;
 			pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
 			item.container.y = pos.y;
@@ -286,8 +288,8 @@
 			item.body = Matter.Bodies.rectangle(
 				obj.x,
 				obj.y,
-				width,
-				height,
+				bodyWidth,
+				bodyHeight,
 				{
 					"inertia": Infinity,
 					"isStatic": isStatic,
@@ -410,6 +412,9 @@
 
 		// Apply Jumping
 		if( keys.ArrowUp ) {
+			if( player.isGrounded ) {
+				console.log( "falling - " + player.body.velocity.y );
+			}
 			if( player.isGrounded ) {
 				Matter.Body.applyForce(
 					player.body, player.body.position, { "x": 0, "y": JUMP_FORCE }
