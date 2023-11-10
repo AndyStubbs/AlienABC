@@ -65,6 +65,7 @@
         "test.tsx"
     ],
     "project": "alien.tiled-project",
+    "property.type": "bool",
     "recentFiles": [
         "alien.tmx",
         "test.tsx"

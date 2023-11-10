@@ -36,15 +36,21 @@
         {
          "draworder":"topdown",
          "id":3,
-         "name":"Object Layer 2",
+         "name":"Objects 2",
          "objects":[
                 {
                  "height":0,
                  "id":6,
                  "name":"A",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"isLetter",
+                         "type":"bool",
+                         "value":true
+                        }],
                  "rotation":0,
-                 "type":"letter",
+                 "type":"pickup",
                  "visible":true,
                  "width":0,
                  "x":420,
@@ -59,7 +65,7 @@
         {
          "draworder":"topdown",
          "id":2,
-         "name":"Objects",
+         "name":"Objects 1",
          "objects":[
                 {
                  "height":700,
@@ -77,8 +83,14 @@
                  "id":2,
                  "name":"Start",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"isPlayer",
+                         "type":"bool",
+                         "value":true
+                        }],
                  "rotation":0,
-                 "type":"checkpoint",
+                 "type":"actor",
                  "visible":true,
                  "width":0,
                  "x":140,

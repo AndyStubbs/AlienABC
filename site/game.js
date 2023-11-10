@@ -48,21 +48,15 @@
 			}
 		} );
 
-		// Set the intial camera position.
-		const pos = g.app.stage.toLocal(
-			new PIXI.Point( game.player.container.x, game.player.container.y )
-		);
-		game.container.x = ( -pos.x / ( 1 / g.app.stage.scale.x ) ) +
-			( g.app.screen.width / g.app.stage.scale.x ) / 2;
-		game.container.y = ( -pos.y / ( 1 / g.app.stage.scale.y ) ) +
-			( g.app.screen.height / g.app.stage.scale.y ) / 2;
-
 		// Add the physics bodies to the world.
 		Matter.Composite.add( game.engine.world, game.bodies );
 
 		// Run the physics simulation.
 		game.runner = Matter.Runner.create();
 		Matter.Runner.run( game.runner, game.engine );
+
+		// Set the initial camera position
+		moveCamera();
 
 		// Run the graphics step.
 		game.elapsed = 0;
@@ -106,84 +100,12 @@
 
 	function createObjects( layer, container ) {
 		layer.objects.forEach( obj => {
-			if( obj.name === "Start" ) {
-				createPlayer( obj, container );
-			} else if( obj.type === "ground" ) {
+			if( obj.type === "ground" ) {
 				createGround( obj );
-			} else if( obj.type === "letter" ) {
-				createPickupItem( obj, container );
+			} else {
+				createItem( obj, container );
 			}
 		} );
-	}
-
-	function createPlayer( obj, container ) {
-		const player = {};
-
-		player.type = "player";
-
-		// Adjust the player position to account for the player sprite's height.
-		obj.y -= 500;
-
-		// Get the position of the player sprite in the game container.
-		const pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
-
-		// Create the player container.
-		player.container = new PIXI.Container();
-		player.container.x = pos.x;
-		player.container.y = pos.y;
-		player.container.scale.x = 1 / g.app.stage.scale.x;
-		player.container.scale.y = 1 / g.app.stage.scale.y;
-		container.addChild( player.container );
-
-		// Create the player sprite
-		player.sprite = new PIXI.Sprite( g.spritesheet.textures[ "p1_front.png" ] );
-		player.sprite.anchor.set( 0.5, 0.5 );
-		player.container.addChild( player.sprite );
-
-		// Create the jump sprite.
-		player.jumpSprite = new PIXI.Sprite( g.spritesheet.textures[ "p1_jump.png" ] );
-		player.jumpSprite.anchor.set( 0.5, 0.5 );
-		player.jumpSprite.visible = false;
-		player.container.addChild( player.jumpSprite );
-
-		// Create the player walking animation.
-		const frames = [];
-		for( let i = 1; i <= 11; i++ ) {
-			const id = i < 10 ? "0" + i : i;
-			frames.push( g.spritesheet.textures[ "p1_walk/p1_walk" + id + ".png" ] );
-		}
-		player.walkAnimation = new PIXI.AnimatedSprite( frames );
-		player.walkAnimation.anchor.set( 0.5, 0.5 );
-		player.walkAnimation.animationSpeed = 0.3;
-		player.walkAnimation.visible = false;
-		player.container.addChild( player.walkAnimation );
-
-		// Create the player physics body
-		const width = player.sprite.width / player.sprite.scale.x;
-		const height = player.sprite.height / player.sprite.scale.y;
-		player.body = Matter.Bodies.rectangle(
-			obj.x,
-			obj.y,
-			width,
-			height,
-			{
-				"inertia": Infinity,
-				"customData": { "type": "actor", "isPlayer": true }
-			}
-		);
-
-		game.itemsMap[ player.body.id ] = player;
-		game.items.push( player );
-		game.bodies.push( player.body );
-
-		// Assign the player to the game object.
-		game.player = player;
-
-		if( DEBUG ) {
-			// Add a debug graphics object to the sprite.
-			player.debug = new PIXI.Graphics();
-			game.container.addChild( player.debug );
-		}
 	}
 
 	function createGround( obj ) {
@@ -203,15 +125,47 @@
 		game.bodies.push( body );
 	}
 
-	function createPickupItem( obj, container ) {
-		const item = {};
+	function createItem( obj, container ) {
+		const item = {
+			"animations": {},
+			"animation": null,
+			"data": {}
+		};
 
-		item.type = "pickup";
-		item.baseX = obj.x;
-		item.baseY = obj.y;
+		item.type = obj.type;
+
+		let bodyType = "";
+		let isStatic = false;
+		let animationsData = null;
+
+		// parse properties
+		for( let i = 0; i < obj.properties.length; i++ ) {
+			item.data[ obj.properties[ i ].name ] = obj.properties[ i ].value;
+		}
+
+		if( item.data.isLetter ) {
+			item.text = obj.name;
+			bodyType = "pickup";
+			isStatic = true;
+		}
+
+		if( item.data.isPlayer ) {
+			game.player = item;
+			animationsData = [
+				"front", "p1_front.png", 0,
+				"jump", "p1_jump.png", 0,
+				"walk", "p1_walk/p1_walk", 11
+			];
+			bodyType = "actor";
+		}
+
+		if( bodyType === "pickup" ) {
+			item.baseX = obj.x;
+			item.baseY = obj.y;
+		}
 
 		// Get the position of the item in the game container.
-		const pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
+		let pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
 
 		// Create the item container.
 		item.container = new PIXI.Container();
@@ -224,9 +178,9 @@
 		let width = 0;
 		let height = 0;
 
-		// Create the item
-		if( obj.type === "letter" ) {
-			item.pixiText = new PIXI.Text( obj.name, {
+		// Create the item text
+		if( item.text ) {
+			item.pixiText = new PIXI.Text( item.text, {
 				"fontFamily": "Arial",
 				"fontSize": 36,
 				"fill": "#ffffff",
@@ -244,6 +198,42 @@
 			height = ( item.pixiText.height - 18 ) / item.pixiText.scale.y;
 		}
 
+		// Create the animations
+		if( animationsData ) {
+			for( let i = 0; i < animationsData.length; i += 3 ) {
+				const name = animationsData[ i ];
+				const textureBaseName = animationsData[ i + 1 ];
+				const count = animationsData[ i + 2 ];
+				const frames = [];
+				if( count === 0 ) {
+					frames.push( g.spritesheet.textures[ textureBaseName ] );
+				} else {
+					for( let j = 1; j <= count; j++ ) {
+						const id = j < 10 ? "0" + j : j;
+						frames.push( g.spritesheet.textures[ textureBaseName + id + ".png" ] );
+					}
+				}
+				const animation = new PIXI.AnimatedSprite( frames );
+				animation.anchor.set( 0.5, 0.5 );
+				animation.animationSpeed = 0.3;
+				animation.visible = false;
+				item.animations[ name ] = animation;
+				item.container.addChild( animation );
+			}
+
+			// Set the active animation
+			item.animation = item.animations[ animationsData[ 0 ] ];
+			item.animation.visible = true;
+			item.animation.play();
+
+			// Update the size and position of the item to match the animation.
+			width = item.animation.width;
+			height = item.animation.height;
+			obj.y -= item.animation.height / 2;
+			pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
+			item.container.y = pos.y;
+		}
+
 		// Create the item physics body
 		item.body = Matter.Bodies.rectangle(
 			obj.x,
@@ -251,18 +241,19 @@
 			width,
 			height,
 			{
-				"isStatic": true,
-				"isSensor": true,
-				"customData": { "type": "pickup" }
+				"inertia": Infinity,
+				"isStatic": isStatic,
+				"isSensor": isStatic,
+				"customData": { "type": bodyType }
 			}
 		);
-
-		game.pickup = item;
-		game.itemsMap[ item.body.id ] = item;
-		game.items.push( item );
 		game.bodies.push( item.body );
 
-		// Add a debug graphics object to the sprite.
+		// Add item for easy access
+		game.itemsMap[ item.body.id ] = item;
+		game.items.push( item );
+
+		// Add a debug graphics object to show the physical body
 		if( DEBUG ) {
 			item.debug = new PIXI.Graphics();
 			game.container.addChild( item.debug );
@@ -273,16 +264,23 @@
 		game.elapsed += delta;
 		moveCamera();
 		for( let i = 0; i < game.items.length; i++ ) {
+
+			// Bob the pickup item up and down.
 			if( game.items[ i ].type === "pickup" ) {
-				// Bob the item up and down.
 				const item = game.items[ i ];
 				const body = item.body;
 				const distance = body.position.y - item.baseY;
-				const movement = Math.sin( game.elapsed / 75 ) * 3 - distance / 10;
+				//const bobOffset = ( game.elapsed / 75 ) + ( Math.PI * 2 ) / i;
+				const bobOffset = ( game.elapsed / 75 );
+				const movement = Math.sin( bobOffset ) * 3 - distance / 10;
 				Matter.Body.translate( body, { "x": 0, "y": movement } );
 			}
+
+			// Update the item's container position to match the physics body.
 			updatePosition( game.items[ i ] );
 		}
+
+		// Apply player controls
 		applyControls( game.player );
 	}
 
@@ -294,10 +292,10 @@
 		item.container.x = pos.x + game.container.x;
 		item.container.y = pos.y + game.container.y;
 
-		// Update the sprite rotation.
+		// Update the rotation.
 		item.container.rotation = body.angle;
 
-		// Draw a wire frame around the sprite using the body vertices.
+		// Draw a wire frame around the item using the body vertices.
 		if( item.debug ) {
 			item.debug.clear();
 			if( item.isGrounded ) {
@@ -336,12 +334,11 @@
 		// Apply movement.
 		let isWalking = false;
 		if( keys.ArrowLeft ) {
+
 			isWalking = true;
 
-			// Set the sprite orientation.
-			player.walkAnimation.scale.x = -1;
-			player.sprite.scale.x = -1;
-			player.jumpSprite.scale.x = -1;
+			// Set the orientation.
+			player.animation.scale.x = -1;
 
 			// Apply the movement.
 			Matter.Body.translate( player.body, { "x": -speed, "y": 0 } );
@@ -350,24 +347,12 @@
 
 			isWalking = true;
 
-			// Set the sprite orientation.
-			player.walkAnimation.scale.x = 1;
-			player.sprite.scale.x = 1;
-			player.jumpSprite.scale.x = 1;
+			// Set the orientation.
+			player.animation.scale.x = 1;
 
 			// Apply the movement.
 			Matter.Body.translate( player.body, { "x": speed, "y": 0 } );
 
-		} else {
-			player.walkAnimation.visible = false;
-			player.walkAnimation.gotoAndStop( 0 );
-			player.sprite.visible = true;
-		}
-
-		if( isWalking && player.isGrounded ) {
-			player.walkAnimation.visible = true;
-			player.walkAnimation.play();
-			player.sprite.visible = false;
 		}
 
 		// Check if falling, allow for a little bit of leeway.
@@ -385,15 +370,34 @@
 			}
 		}
 
-		// Update the jump sprite visibility.
-		if( player.isGrounded ) {
-			player.jumpSprite.visible = false;
+		// Set the animation
+		if( isWalking && player.isGrounded ) {
+			setAnimation( "walk", player );
+		} else if( !player.isGrounded ) {
+			setAnimation( "jump", player );
 		} else {
-			player.jumpSprite.visible = true;
-			player.sprite.visible = false;
-			player.walkAnimation.visible = false;
-			player.walkAnimation.gotoAndStop( 0 );
+			setAnimation( "front", player );
 		}
+	}
+
+	function setAnimation( name, actor ) {
+
+		// If animation is already active then do nothing
+		if( actor.animation === actor.animations[ name ] ) {
+			return;
+		}
+
+		// Stop the current animation
+		actor.animation.visible = false;
+		actor.animation.gotoAndStop( 0 );
+
+		// Math the orientation of the new animation to the current orientation
+		actor.animations[ name ].scale.x = actor.animation.scale.x;
+
+		// Start the new animation
+		actor.animation = actor.animations[ name ];
+		actor.animation.visible = true;
+		actor.animation.play();
 	}
 
 	function moveCamera() {
@@ -407,21 +411,6 @@
 		let targetY = ( -pos.y / ( 1 / g.app.stage.scale.y ) ) +
 			( g.app.screen.height / g.app.stage.scale.y ) / 2;
 
-		// Below code is for a smooth camera follow. -- Not working well.
-		/*
-		if( player.sprite.scale.x > 0 ) {
-			targetX -= ( g.app.screen.width / 15 );
-		} else {
-			targetX += ( g.app.screen.width / 15 );
-		}
-		const dx = targetX - game.container.x;
-		const dy = targetY - game.container.y;
-		const dist = Math.sqrt( dx * dx + dy * dy );
-		const move = Math.sqrt( g.app.screen.width * g.app.screen.width + g.app.screen.height * g.app.screen.height ) / 300;
-		if( Math.abs( dist ) > move ) {
-			targetX = game.container.x + dx / dist * move;
-			targetY = game.container.y + dy / dist * move;
-		}*/
 		game.container.x = targetX;
 		game.container.y = targetY;
 	}
@@ -465,18 +454,18 @@
 			}
 
 			// Check for a player hitting a pickup item.
-			let player;
+			let actor;
 			let pickup;
-			if( a.isPlayer && b.type === "pickup" ) {
-				player = game.itemsMap[ pair.bodyA.id ];
+			if( a.type === "actor" && b.type === "pickup" ) {
+				actor = game.itemsMap[ pair.bodyA.id ];
 				pickup = game.itemsMap[ pair.bodyB.id ];
-			} else if( a.type === "pickup" && b.isPlayer ) {
-				player = game.itemsMap[ pair.bodyB.id ];
+			} else if( a.type === "pickup" && b.type === "actor" ) {
+				actor = game.itemsMap[ pair.bodyB.id ];
 				pickup = game.itemsMap[ pair.bodyA.id ];
 			}
 
-			if( player && pickup ) {
-				pickupItem( player, pickup );
+			if( actor && pickup && actor.data.isPlayer ) {
+				pickupItem( actor, pickup );
 			}
 		}
 	}
@@ -499,6 +488,3 @@
 	}
 
 } )();
-
-
-

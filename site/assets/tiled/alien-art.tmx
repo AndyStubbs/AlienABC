@@ -29,13 +29,19 @@
 </data>
  </layer>
  <objectgroup id="3" name="Objects 2">
-  <object id="6" name="A" type="letter" x="420" y="560">
+  <object id="6" name="A" type="pickup" x="420" y="560">
+   <properties>
+    <property name="isLetter" type="bool" value="true"/>
+   </properties>
    <point/>
   </object>
  </objectgroup>
  <objectgroup id="2" name="Objects 1">
   <object id="1" type="ground" x="0" y="700" width="700" height="700"/>
-  <object id="2" name="Start" type="checkpoint" x="140" y="700">
+  <object id="2" name="Start" type="actor" x="140" y="700">
+   <properties>
+    <property name="isPlayer" type="bool" value="true"/>
+   </properties>
    <point/>
   </object>
   <object id="3" type="ground" x="910" y="700" width="1190" height="700"/>
