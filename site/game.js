@@ -37,6 +37,19 @@
 		// Create the physics world.
 		game.engine = Matter.Engine.create();
 
+		// Map the layers properties
+		game.level.layers.forEach( layer => {
+			layer.propertyData = {};
+			layer.properties.forEach( property => {
+				layer.propertyData[ property.name ] = property.value;
+			} );
+		} );
+
+		// Sort the level layers by order
+		game.level.layers.sort( ( a, b ) => {
+			return a.propertyData.order - b.propertyData.order;
+		} );
+
 		// Create the level objects.
 		game.level.layers.forEach( layer => {
 			const container = new PIXI.Container();
@@ -84,7 +97,11 @@
 		for( let i = 0; i < layer.data.length; i++ ) {
 			const tileId = layer.data[ i ];
 			if( tileId && tileId !== 0 ) {
+
+				// Create the tile sprite
 				const tile = new PIXI.Sprite( game.tiles[ tileId ] );
+
+				// Set the sprite position
 				const pos = game.container.toLocal( new PIXI.Point( 
 					( i % layer.width ) * game.level.tilewidth,
 					Math.floor( i / layer.width ) * game.level.tileheight
@@ -93,6 +110,14 @@
 				tile.y = pos.y;
 				tile.scale.x = 1 / g.app.stage.scale.x;
 				tile.scale.y = 1 / g.app.stage.scale.y;
+
+				// Add tinting
+				if( layer.propertyData.tint ) {
+
+					// Convert the hex color to HTML standard format remove the first two chars
+					// which is the alpha value, as per TILED format.
+					tile.tint = "#" + layer.propertyData.tint.substring( 3 );
+				}
 				container.addChild( tile );
 			}
 		}
@@ -137,19 +162,43 @@
 		let bodyType = "";
 		let isStatic = false;
 		let animationsData = null;
+		let fontProperties = {
+			"fontFamily": "Arial",
+			"align": "center"
+		};
+		let textOffsetY = 0;
 
 		// parse properties
-		for( let i = 0; i < obj.properties.length; i++ ) {
-			item.data[ obj.properties[ i ].name ] = obj.properties[ i ].value;
+		if( obj.properties ) {
+			for( let i = 0; i < obj.properties.length; i++ ) {
+				item.data[ obj.properties[ i ].name ] = obj.properties[ i ].value;
+			}
 		}
 
 		if( item.data.isLetter ) {
 			item.text = obj.name;
 			bodyType = "pickup";
 			isStatic = true;
-		}
-
-		if( item.data.isPlayer ) {
+			item.baseX = obj.x;
+			item.baseY = obj.y;
+			fontProperties.fontSize = 36;
+			fontProperties.fill = "#ffffff";
+			fontProperties.stroke = "#000000";
+			fontProperties.strokeThickness = 3;
+			fontProperties.dropShadow = true;
+			fontProperties.dropShadowColor = "#000000";
+			fontProperties.dropShadowBlur = 4;
+		} else if( item.type === "sign" ) {
+			item.text = obj.name;
+			bodyType = "none";
+			if( item.text.length > 5 ) {
+				fontProperties.fontSize = 12;
+			} else {
+				fontProperties.fontSize = 18;
+			}
+			fontProperties.fill = "#000000";
+			textOffsetY = 8;
+		} else if( item.data.isPlayer ) {
 			game.player = item;
 			animationsData = [
 				"front", "p1_front.png", 0,
@@ -157,11 +206,8 @@
 				"walk", "p1_walk/p1_walk", 11
 			];
 			bodyType = "actor";
-		}
-
-		if( bodyType === "pickup" ) {
-			item.baseX = obj.x;
-			item.baseY = obj.y;
+		} else {
+			bodyType = "none";
 		}
 
 		// Get the position of the item in the game container.
@@ -180,22 +226,22 @@
 
 		// Create the item text
 		if( item.text ) {
-			item.pixiText = new PIXI.Text( item.text, {
-				"fontFamily": "Arial",
-				"fontSize": 36,
-				"fill": "#ffffff",
-				"stroke": "#000000",
-				"strokeThickness": 3,
-				"dropShadow": true,
-				"dropShadowColor": "#000000",
-				"dropShadowBlur": 4,
-				"align": "center"
-			} );
+			item.pixiText = new PIXI.Text( item.text, fontProperties );
 			item.pixiText.anchor.set( 0.5, 0.5 );
 			item.container.addChild( item.pixiText );
 
 			width = ( item.pixiText.width - 8 ) / item.pixiText.scale.x;
 			height = ( item.pixiText.height - 18 ) / item.pixiText.scale.y;
+
+			if( obj.width ) {
+				obj.x += obj.width / 2;
+			}
+			if( obj.height ) {
+				obj.y += obj.height / 2 - textOffsetY;
+			}
+			pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
+			item.container.x = pos.x;
+			item.container.y = pos.y;
 		}
 
 		// Create the animations
@@ -234,29 +280,32 @@
 			item.container.y = pos.y;
 		}
 
-		// Create the item physics body
-		item.body = Matter.Bodies.rectangle(
-			obj.x,
-			obj.y,
-			width,
-			height,
-			{
-				"inertia": Infinity,
-				"isStatic": isStatic,
-				"isSensor": isStatic,
-				"customData": { "type": bodyType }
+		if( bodyType !== "none" ) {
+
+			// Create the item physics body
+			item.body = Matter.Bodies.rectangle(
+				obj.x,
+				obj.y,
+				width,
+				height,
+				{
+					"inertia": Infinity,
+					"isStatic": isStatic,
+					"isSensor": isStatic,
+					"customData": { "type": bodyType }
+				}
+			);
+			game.bodies.push( item.body );
+
+			// Add a debug graphics object to show the physical body
+			if( DEBUG ) {
+				item.debug = new PIXI.Graphics();
+				game.container.addChild( item.debug );
 			}
-		);
-		game.bodies.push( item.body );
 
-		// Add item for easy access
-		game.itemsMap[ item.body.id ] = item;
-		game.items.push( item );
-
-		// Add a debug graphics object to show the physical body
-		if( DEBUG ) {
-			item.debug = new PIXI.Graphics();
-			game.container.addChild( item.debug );
+			// Add item for easy access
+			game.items.push( item );
+			game.itemsMap[ item.body.id ] = item;
 		}
 	}
 
