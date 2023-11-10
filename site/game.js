@@ -5,7 +5,7 @@
 	const game = {};
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 1.8;
 	const JUMP_FORCE = -0.25;
-	const DEBUG = false;
+	const DEBUG = true;
 
 	g.loadLevel = async function ( name ) {
 		if( !game.tiles ) {
@@ -47,6 +47,15 @@
 				createObjects( layer, container );
 			}
 		} );
+
+		// Set the intial camera position.
+		const pos = g.app.stage.toLocal(
+			new PIXI.Point( game.player.container.x, game.player.container.y )
+		);
+		game.container.x = ( -pos.x / ( 1 / g.app.stage.scale.x ) ) +
+			( g.app.screen.width / g.app.stage.scale.x ) / 2;
+		game.container.y = ( -pos.y / ( 1 / g.app.stage.scale.y ) ) +
+			( g.app.screen.height / g.app.stage.scale.y ) / 2;
 
 		// Add the physics bodies to the world.
 		Matter.Composite.add( game.engine.world, game.bodies );
@@ -189,23 +198,25 @@
 	}
 
 	function step() {
+		moveCamera();
 		updatePosition( game.player );
 		applyControls( game.player );
 	}
 
 	function updatePosition( actor ) {
 		const body = actor.body;
-		const pos = game.container.toLocal(
+		const pos = actor.container.parent.toLocal(
 			new PIXI.Point( body.position.x, body.position.y )
 		);
-		actor.container.x = pos.x;
-		actor.container.y = pos.y;
+		actor.container.x = pos.x + game.container.x;
+		actor.container.y = pos.y + game.container.y;
+		//actor.container.x = body.position.x;
+		//actor.container.y = body.position.y;
 
 		// Update the sprite rotation.
 		actor.container.rotation = body.angle;
 
-		// Draw a wire frame around the sprite using the body
-		// vertices.
+		// Draw a wire frame around the sprite using the body vertices.
 		if( actor.debug ) {
 			actor.debug.clear();
 			if( actor.isGrounded ) {
@@ -215,19 +226,22 @@
 			}
 			actor.debug.beginFill( "#000000", 0 );
 			let pos = game.container.toLocal(
-				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
+				new PIXI.Point(
+					body.vertices[ 0 ].x,
+					body.vertices[ 0 ].y
+				)
 			);
-			actor.debug.moveTo( pos.x, pos.y );
+			actor.debug.moveTo( pos.x + game.container.x, pos.y + game.container.y );
 			for( let i = 1; i < body.vertices.length; i++ ) {
 				pos = game.container.toLocal(
 					new PIXI.Point( body.vertices[ i ].x, body.vertices[ i ].y )
 				);
-				actor.debug.lineTo( pos.x, pos.y );
+				actor.debug.lineTo( pos.x + game.container.x, pos.y + game.container.y );
 			}
 			pos = game.container.toLocal(
 				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
 			);
-			actor.debug.lineTo( pos.x, pos.y );
+			actor.debug.lineTo( pos.x + game.container.x, pos.y + game.container.y );
 			actor.debug.endFill();
 		}
 	}
@@ -301,6 +315,36 @@
 		}
 	}
 
+	function moveCamera() {
+		const player = game.player;
+		const pos = g.app.stage.toLocal(
+			new PIXI.Point( player.container.x, player.container.y )
+		);
+
+		let targetX = ( -pos.x / ( 1 / g.app.stage.scale.x ) ) +
+			( g.app.screen.width / g.app.stage.scale.x ) / 2;
+		let targetY = ( -pos.y / ( 1 / g.app.stage.scale.y ) ) +
+			( g.app.screen.height / g.app.stage.scale.y ) / 2;
+
+		// Below code is for a smooth camera follow. -- Not working well.
+		/*
+		if( player.sprite.scale.x > 0 ) {
+			targetX -= ( g.app.screen.width / 15 );
+		} else {
+			targetX += ( g.app.screen.width / 15 );
+		}
+		const dx = targetX - game.container.x;
+		const dy = targetY - game.container.y;
+		const dist = Math.sqrt( dx * dx + dy * dy );
+		const move = Math.sqrt( g.app.screen.width * g.app.screen.width + g.app.screen.height * g.app.screen.height ) / 300;
+		if( Math.abs( dist ) > move ) {
+			targetX = game.container.x + dx / dist * move;
+			targetY = game.container.y + dy / dist * move;
+		}*/
+		game.container.x = targetX;
+		game.container.y = targetY;
+	}
+
 	function setupInputs() {
 		const keys = {};
 		document.addEventListener( "keydown", keydown );
@@ -328,12 +372,11 @@
 			const pair = pairs[ i ];
 			const a = pair.bodyA.customData;
 			const b = pair.bodyB.customData;
-			if( Math.abs( pair.collision.penetration.y ) > 0 ) {
-				if( a.type === "actor" && b.type === "ground" ) {
-					game.actorsMap[ pair.bodyA.id ].isGrounded = true;
-				} else if ( a.type === "ground" && b.type === "actor" ) {
-					game.actorsMap[ pair.bodyB.id ].isGrounded = true;
-				}
+			const penetration = pair.collision.penetration;
+			if( a.type === "actor" && b.type === "ground" && penetration.y < 0 ) {
+				game.actorsMap[ pair.bodyA.id ].isGrounded = true;
+			} else if ( a.type === "ground" && b.type === "actor" && penetration.y > 0) {
+				game.actorsMap[ pair.bodyB.id ].isGrounded = true;
 			}
 		}
 	}
