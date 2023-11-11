@@ -7,6 +7,51 @@
 	const JUMP_FORCE = -0.125;
 	const DEBUG = true;
 	const MIDDLE_LAYER = "Middle 1";
+	const enemies = {
+		"Slime": {
+			"health": 1,
+			"damage": 1,
+			"speed": -1,
+			"bodyWidthModifier": 0.8,
+			"animationsData": [
+				"stand", "slimeWalk1.png", 0, 0,
+				"front", "slimeWalk1.png", 0, 0,
+				"jump", "slimeWalk1.png", 0, 0,
+				"walk", "slimeWalk", 2, 0.05,
+				"hurt", "slimeDead.png", 0, 0
+			]
+		}
+	};
+	const players = {
+		"p1": {
+			"bodyWidthModifier": 0.5,
+			"animationsData": [
+				"stand", "p1_stand.png", 0, 0,
+				"front", "p1_front.png", 0, 0,
+				"jump", "p1_jump.png", 0, 0,
+				"walk", "p1_walk/p1_walk", 11, 0.3,
+				"hurt", "p1_hurt.png", 0, 0
+			]
+		}, "p2": {
+			"bodyWidthModifier": 0.5,
+			"animationsData": [
+				"stand", "p1_stand.png", 0, 0,
+				"front", "p1_front.png", 0, 0,
+				"jump", "p1_jump.png", 0, 0,
+				"walk", "p1_walk/p1_walk", 11, 0.3,
+				"hurt", "p1_hurt.png", 0, 0
+			]
+		}, "p3": {
+			"bodyWidthModifier": 0.5,
+			"animationsData": [
+				"stand", "p1_stand.png", 0, 0,
+				"front", "p1_front.png", 0, 0,
+				"jump", "p1_jump.png", 0, 0,
+				"walk", "p1_walk/p1_walk", 11, 0.3,
+				"hurt", "p1_hurt.png", 0, 0
+			]
+		}
+	};
 
 	g.loadLevel = async function ( name ) {
 		if( !game.tiles ) {
@@ -25,9 +70,11 @@
 		}
 
 		game.bodies = [];
+		game.groundBodies = [];
 		game.itemsMap = {};
 		game.items = [];
 		game.player = {
+			"id": "p2",
 			"health": 100,
 			"maxHealth": 100,
 			"stars": 0,
@@ -35,6 +82,7 @@
 		};
 		game.placedTiles = {};
 		game.markers = {};
+		game.enemies = [];
 
 		// Create the level container.
 		if( game.container ) {
@@ -334,6 +382,7 @@
 		);
 		body.friction = 0;
 		game.bodies.push( body );
+		game.groundBodies.push( body );
 	}
 
 	function createItem( obj, container ) {
@@ -356,6 +405,7 @@
 		};
 		let textOffsetY = 0;
 		let bodyWidthModifier = 1;
+		let hasCliffSensors = false;
 
 		// parse properties
 		if( obj.properties ) {
@@ -389,13 +439,16 @@
 			textOffsetY = 8;
 		} else if( item.data.isPlayer ) {
 			game.player.obj = item;
-			animationsData = [
-				"front", "p1_front.png", 0,
-				"jump", "p1_jump.png", 0,
-				"walk", "p1_walk/p1_walk", 11
-			];
+			animationsData = players[ game.player.id ].animationsData;
 			bodyType = "actor";
-			bodyWidthModifier = 0.5;
+			bodyWidthModifier = players[ game.player.id ].bodyWidthModifier;
+		} else if ( item.type === "enemy" ) {
+			item.enemy = enemies[ obj.name ];
+			animationsData = item.enemy.animationsData;
+			bodyType = "actor";
+			bodyWidthModifier = enemies[ obj.name ].bodyWidthModifier;
+			game.enemies.push( item );
+			hasCliffSensors = true;
 		} else if( item.type === "trigger" ) {
 			item.name = obj.name;
 			bodyType = "trigger";
@@ -442,22 +495,27 @@
 
 		// Create the animations
 		if( animationsData ) {
-			for( let i = 0; i < animationsData.length; i += 3 ) {
+			for( let i = 0; i < animationsData.length; i += 4 ) {
 				const name = animationsData[ i ];
 				const textureBaseName = animationsData[ i + 1 ];
 				const count = animationsData[ i + 2 ];
+				const speed = animationsData[ i + 3 ];
 				const frames = [];
 				if( count === 0 ) {
 					frames.push( g.spritesheet.textures[ textureBaseName ] );
 				} else {
 					for( let j = 1; j <= count; j++ ) {
 						const id = j < 10 ? "0" + j : j;
-						frames.push( g.spritesheet.textures[ textureBaseName + id + ".png" ] );
+						if( g.spritesheet.textures[ textureBaseName + id + ".png" ] ) {
+							frames.push( g.spritesheet.textures[ textureBaseName + id + ".png" ] );
+						} else {
+							frames.push( g.spritesheet.textures[ textureBaseName + j + ".png" ] );
+						}
 					}
 				}
 				const animation = new PIXI.AnimatedSprite( frames );
 				animation.anchor.set( 0.5, 0.5 );
-				animation.animationSpeed = 0.3;
+				animation.animationSpeed = speed;
 				animation.visible = false;
 				item.animations[ name ] = animation;
 				item.container.addChild( animation );
@@ -502,6 +560,77 @@
 			// Add item for easy access
 			game.items.push( item );
 			game.itemsMap[ item.body.id ] = item;
+
+			// Add cliff sensors
+			if( hasCliffSensors ) {
+				const sensorWidth = 5;
+				const sensorHeight = 5;
+				const sensorOffsetX = bodyWidth / 2 + sensorWidth;
+				const sensorOffsetY = bodyHeight / 2 + sensorHeight;
+				item.cliffSensors = [
+					{
+						"width": sensorWidth,
+						"height": sensorHeight,
+						"sensorOffsetX": sensorOffsetX,
+						"sensorOffsetY": sensorOffsetY,
+						"body":
+							Matter.Bodies.rectangle(
+								obj.x - sensorOffsetX,
+								obj.y + sensorOffsetY,
+								sensorWidth,
+								sensorHeight,
+								{
+									"isStatic": true,
+									"isSensor": true,
+									"customData": { "type": "cliffSensor" }
+								}
+							)
+					}, {
+						"width": sensorWidth,
+						"height": sensorHeight,
+						"sensorOffsetX": sensorOffsetX,
+						"sensorOffsetY": sensorOffsetY,
+						"body":
+							Matter.Bodies.rectangle(
+								obj.x + sensorOffsetX,
+								obj.y + sensorOffsetY,
+								sensorWidth,
+								sensorHeight,
+								{
+									"isStatic": true,
+									"isSensor": true,
+									"customData": { "type": "cliffSensor" }
+								}
+							)
+					}
+				];
+				game.bodies.push( item.cliffSensors[ 0 ].body );
+				game.bodies.push( item.cliffSensors[ 1 ].body );
+
+				// Add debug graphics
+				if( DEBUG ) {
+					item.cliffSensors[ 0 ].debug = new PIXI.Graphics();
+					item.cliffSensors[ 1 ].debug = new PIXI.Graphics();
+					game.container.addChild( item.cliffSensors[ 0 ].debug );
+					game.container.addChild( item.cliffSensors[ 1 ].debug );
+
+					// Add a debug graphics object to show the physical body
+					item.cliffSensors[ 0 ].debug.lineStyle( 1, "#ff0000" );
+					item.cliffSensors[ 0 ].debug.beginFill( "#000000", 0 );
+					item.cliffSensors[ 0 ].debug.drawRect(
+						-sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight
+					);
+					item.cliffSensors[ 0 ].debug.endFill();
+
+					// Add a debug graphics object to show the physical body
+					item.cliffSensors[ 1 ].debug.lineStyle( 1, "#ff0000" );
+					item.cliffSensors[ 1 ].debug.beginFill( "#000000", 0 );
+					item.cliffSensors[ 1 ].debug.drawRect(
+						-sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight
+					);
+					item.cliffSensors[ 1 ].debug.endFill();
+				}
+			}
 		}
 	}
 
@@ -525,7 +654,10 @@
 		}
 
 		// Apply player controls
-		applyControls( game.player.obj );
+		applyControls( game.player.obj, delta );
+
+		// Move the enemies
+		moveEnemies( delta );
 	}
 
 	function updatePosition( item ) {
@@ -536,6 +668,34 @@
 
 		// Update the rotation.
 		item.container.rotation = body.angle;
+
+		if( item.cliffSensors ) {
+			const sensors = item.cliffSensors;
+			Matter.Body.setPosition( sensors[ 0 ].body, {
+				"x": body.position.x - sensors[ 0 ].sensorOffsetX,
+				"y": body.position.y + sensors[ 0 ].sensorOffsetY
+			} );
+			Matter.Body.setPosition( sensors[ 1 ].body, {
+				"x": body.position.x + sensors[ 1 ].sensorOffsetX,
+				"y": body.position.y + sensors[ 1 ].sensorOffsetY
+			} );
+
+			// Check if the cliff sensors are colliding with anything
+			for( let i = 0; i < sensors.length; i++ ) {
+				const sensor = sensors[ i ];
+				sensor.isGrounded = false;
+				const collisions = Matter.Query.collides( sensor.body, game.groundBodies );
+				if( collisions.length > 0 ) {
+					for( let j = 0; j < collisions.length; j++ ) {
+						const collision = collisions[ j ];
+						if( collision.bodyA.customData.type === "ground" ||
+							collision.bodyB.customData.type === "ground" ) {
+							sensor.isGrounded = true;
+						}
+					}
+				}
+			}
+		}
 
 		// Draw a wire frame around the item using the body vertices.
 		if( item.debug ) {
@@ -552,14 +712,34 @@
 			}
 			item.debug.lineTo( body.vertices[ 0 ].x, body.vertices[ 0 ].y );
 			item.debug.endFill();
+
+			// Update position of the cliff sensors debug graphics
+			if( item.cliffSensors ) {
+				item.cliffSensors.forEach( sensor => {
+					sensor.debug.clear();
+					sensor.debug.x = sensor.body.position.x;
+					sensor.debug.y = sensor.body.position.y;
+					if( sensor.isGrounded ) {
+						sensor.debug.lineStyle( 1, "#0000ff" );
+					} else {
+						sensor.debug.lineStyle( 1, "#00ff00" );
+					}
+					sensor.debug.beginFill( "#000000", 0 );
+					sensor.debug.drawRect(
+						-sensor.width / 2, -sensor.height / 2, sensor.width, sensor.height
+					);
+					sensor.debug.endFill();
+				} );
+			}
+
 		}
 	}
 
-	function applyControls( player ) {
+	function applyControls( player, delta ) {
 
 		// Apply player movement for platformer controls.
 		const keys = game.keys;
-		const speed = 5;
+		const speed = 5 * delta;
 
 		// Apply movement.
 		let isWalking = false;
@@ -631,6 +811,41 @@
 		actor.animation = actor.animations[ name ];
 		actor.animation.visible = true;
 		actor.animation.play();
+	}
+
+	function moveEnemies( delta ) {
+		for( let i = 0; i < game.enemies.length; i++ ) {
+			const enemy = game.enemies[ i ];
+			const body = enemy.body;
+
+			// Check if the enemy is on the ground
+			if( enemy.isGrounded && body.velocity.y > MAX_VELOCITY_Y_FOR_GROUNDED ) {
+				enemy.isGrounded = false;
+			}
+
+			// Check if the enemy is near the edge of a platform
+			if( enemy.isGrounded && enemy.cliffSensors ) {
+				const sensors = enemy.cliffSensors;
+				if(
+					( enemy.enemy.speed < 0 && !sensors[ 0 ].isGrounded ) ||
+					( enemy.enemy.speed > 0 && !sensors[ 1 ].isGrounded )
+				) {
+					enemy.enemy.speed *= -1;
+					enemy.animation.scale.x *= -1;
+				}
+			}
+
+			// Apply the movement
+			const speed = enemy.enemy.speed * delta;
+			Matter.Body.translate( body, { "x": speed, "y": 0 } );
+
+			// Set the animation
+			if( enemy.isGrounded ) {
+				setAnimation( "walk", enemy );
+			} else {
+				setAnimation( "jump", enemy );
+			}
+		}
 	}
 
 	function moveCamera() {
