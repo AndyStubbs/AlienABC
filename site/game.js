@@ -14,9 +14,10 @@
 		const response = await fetch( "assets/tiled/alien-" + name + ".json" );
 		const json = await response.json();
 		game.level = json;
+		game.word = name;
 	};
 
-	g.startLevel = function () {
+	g.startLevel = function ( ) {
 		if( !game.level || !game.tiles ) {
 			setTimeout( g.startLevel, 100 );
 			return;
@@ -25,6 +26,12 @@
 		game.bodies = [];
 		game.itemsMap = {};
 		game.items = [];
+		game.player = {
+			"health": 100,
+			"maxHealth": 100,
+			"stars": 0,
+			"letters": "___"
+		};
 
 		// Create the level container.
 		if( game.container ) {
@@ -35,6 +42,10 @@
 		game.container.scale.x = 1 / g.app.stage.scale.x;
 		game.container.scale.y = 1 / g.app.stage.scale.y;
 		g.app.stage.addChild( game.container );
+
+		// Create the HUD container.
+		createHud();
+		updateHud();
 
 		// Create the physics world.
 		game.engine = Matter.Engine.create();
@@ -88,6 +99,8 @@
 		if( game.container ) {
 			game.container.scale.x = 1 / g.app.stage.scale.x;
 			game.container.scale.y = 1 / g.app.stage.scale.y;
+			createHud();
+			updateHud();
 			moveCamera();
 		}
 	};
@@ -128,6 +141,109 @@
 				};
 			}
 		} );
+	}
+
+	function createHud() {
+		if( game.hud ) {
+			g.app.stage.removeChild( game.hud );
+			game.hud.destroy();
+		}
+		game.hud = new PIXI.Container();
+		game.hud.scale.x = 1 / g.app.stage.scale.x;
+		game.hud.scale.y = 1 / g.app.stage.scale.y;
+		g.app.stage.addChild( game.hud );
+
+		const hud = game.hud;
+		const healthBar = new PIXI.Container();
+		healthBar.x = 10;
+		healthBar.y = 10;
+		hud.addChild( healthBar );
+
+		// Create the health bar background
+		const healthBarBg = new PIXI.Graphics();
+		healthBarBg.beginFill( "#780000" );
+		healthBarBg.drawRect( 0, 0, 200, 40 );
+		healthBarBg.endFill();
+		healthBar.addChild( healthBarBg );
+
+		// Create the health bar
+		const healthBarFill = new PIXI.Graphics();
+		healthBarFill.beginFill( "#007e00" );
+		healthBarFill.drawRect( 0, 0, 200, 40 );
+		healthBarFill.endFill();
+		healthBar.addChild( healthBarFill );
+		game.hud.healthBarFill = healthBarFill;
+
+		// Create the health bar text
+		const healthBarText = new PIXI.Text( "100%", {
+			"fontFamily": "Arial",
+			"fontSize": 32,
+			"fill": "#ffffff"
+		} );
+		healthBarText.x = 100;
+		healthBarText.y = 2;
+		healthBarText.anchor.set( 0.5, 0 );
+		healthBar.addChild( healthBarText );
+		game.hud.healthBarText = healthBarText;
+
+		// Create the letters text
+		const lettersText = new PIXI.Text( "ART", {
+			"fontFamily": "Arial",
+			"fontSize": 32,
+			"fill": "#ffffff",
+			"stroke": "#000000",
+			"strokeThickness": 3,
+			"dropShadow": true,
+			"dropShadowColor": "#000000",
+		} );
+
+		// Center the text on the screen
+		lettersText.anchor.set( 0.5, 0 );
+		lettersText.x = g.app.screen.width / 2;
+		lettersText.y = 10;
+		hud.addChild( lettersText );
+		game.hud.lettersText = lettersText;
+
+		// Create the stars text
+		const starsText = new PIXI.Text( "0", {
+			"fontFamily": "Arial",
+			"fontSize": 32,
+			"fill": "#ffffff",
+			"stroke": "#000000",
+			"strokeThickness": 3,
+			"dropShadow": true,
+			"dropShadowColor": "#000000",
+		} );
+
+		// Place the text in the top right corner
+		starsText.anchor.set( 1, 0 );
+		starsText.x = g.app.screen.width - 10;
+		starsText.y = 10;
+		hud.addChild( starsText );
+		game.hud.starsText = starsText;
+
+		// Create the stars icon
+		const starIcon = new PIXI.Container();
+		const starsIconBg = new PIXI.Graphics();
+		starsIconBg.beginFill( "#00000055" );
+		starsIconBg.drawCircle( 0, 0, 20 );
+		starsIconBg.endFill();
+		starIcon.addChild( starsIconBg );
+		const starsIcon = new PIXI.Sprite( g.spritesheet.textures[ "star.png" ] );
+		starsIcon.anchor.set( 0.5, 0.5 );
+		starIcon.addChild( starsIcon );
+		starIcon.x = g.app.screen.width - starsText.width - starIcon.width / 2 - 15;
+		starIcon.y = 30;
+		hud.addChild( starIcon );
+		game.hud.starIcon = starIcon;
+	}
+
+	function updateHud() {
+		const hud = game.hud;
+		hud.healthBarText.text = Math.round( game.player.health ) + "%";
+		hud.healthBarFill.width = 200 * game.player.health / game.player.maxHealth;
+		hud.starsText.text = game.player.stars;
+		hud.lettersText.text = game.player.letters;
 	}
 
 	function createTiles( layer, container ) {
@@ -245,7 +361,7 @@
 			fontProperties.fill = "#000000";
 			textOffsetY = 8;
 		} else if( item.data.isPlayer ) {
-			game.player = item;
+			game.player.obj = item;
 			animationsData = [
 				"front", "p1_front.png", 0,
 				"jump", "p1_jump.png", 0,
@@ -374,7 +490,7 @@
 		}
 
 		// Apply player controls
-		applyControls( game.player );
+		applyControls( game.player.obj );
 	}
 
 	function updatePosition( item ) {
@@ -483,7 +599,7 @@
 	}
 
 	function moveCamera() {
-		const player = game.player;
+		const player = game.player.obj;
 
 		// Convert the coordinates to screen space.
 		const left = -player.container.x / g.app.stage.scale.x;
@@ -581,6 +697,15 @@
 
 		if( DEBUG ) {
 			game.container.removeChild( pickup.debug );
+		}
+
+		// Update the player.
+		if( player === game.player.obj && pickup.data.isLetter ) {
+			const letter = pickup.text;
+			const index = game.word.indexOf( letter );
+			game.player.letters = game.player.letters.substring( 0, index ) + letter +
+				game.player.letters.substring( index + 1 );
+			updateHud();
 		}
 	}
 
