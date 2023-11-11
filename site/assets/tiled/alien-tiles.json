@@ -940,7 +940,18 @@
          "id":154,
          "image":"..\/images\/Tiles\/tochLit.png",
          "imageheight":70,
-         "imagewidth":70
+         "imagewidth":70,
+         "properties":[
+                {
+                 "name":"anim-1",
+                 "type":"string",
+                 "value":"tochLit2.png"
+                }, 
+                {
+                 "name":"animationSpeed",
+                 "type":"float",
+                 "value":0.03
+                }]
         }, 
         {
          "id":155,

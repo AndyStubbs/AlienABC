@@ -99,7 +99,34 @@
 		game.tiles = {};
 		json.tiles.forEach( ( tile ) => {
 			const name = tile.image.split( "/" ).pop();
-			game.tiles[ tile.id + 1 ] = g.spritesheet.textures[ name ];
+
+			// Parse the tile properties
+			tile.propertyData = {};
+			if( tile.properties ) {
+				tile.properties.forEach( property => {
+					tile.propertyData[ property.name ] = property.value;
+				} );
+			}
+
+			// Add the tile to the tiles map
+			if( tile.propertyData[ "anim-1" ] ) {
+				const frames = [ g.spritesheet.textures[ name ] ];
+				let animId = "anim-1";
+				let cnt = 1;
+				while( tile.propertyData[ animId ] ) {
+					frames.push( g.spritesheet.textures[ tile.propertyData[ animId ] ] );
+					cnt += 1;
+					animId = "anim-" + cnt;
+				}
+				game.tiles[ tile.id + 1 ] = {
+					"animationFrames": frames,
+					"animationSpeed": tile.propertyData[ "animationSpeed" ]
+				};
+			} else {
+				game.tiles[ tile.id + 1 ] =  {
+					"texture": g.spritesheet.textures[ name ]
+				};
+			}
 		} );
 	}
 
@@ -108,8 +135,18 @@
 			const tileId = layer.data[ i ];
 			if( tileId && tileId !== 0 ) {
 
-				// Create the tile sprite
-				const tile = new PIXI.Sprite( game.tiles[ tileId ] );
+				// Create the sprite or animation
+				let tile = null;
+				if( game.tiles[ tileId ].animationFrames ) {
+					tile = new PIXI.AnimatedSprite( game.tiles[ tileId ].animationFrames );
+					tile.animationSpeed = game.tiles[ tileId ].animationSpeed;
+					setTimeout( () => {
+						tile.play();
+					}, Math.random() * 1000 );
+					container.addChild( tile );
+				} else {
+					tile = new PIXI.Sprite( game.tiles[ tileId ].texture );
+				}
 
 				// Set the sprite position
 				const pos = game.container.toLocal( new PIXI.Point( 

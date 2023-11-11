@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tileset version="1.10" tiledversion="1.10.2" name="alien-tiles" tilewidth="70" tileheight="70" tilecount="158" columns="0">
+ <editorsettings>
+  <export target="alien-tiles.json" format="json"/>
+ </editorsettings>
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="0">
   <image width="70" height="70" source="../images/Tiles/box.png"/>
@@ -464,6 +467,10 @@
   <image width="70" height="70" source="../images/Tiles/stoneWall.png"/>
  </tile>
  <tile id="154">
+  <properties>
+   <property name="anim-1" value="tochLit2.png"/>
+   <property name="animationSpeed" type="float" value="0.03"/>
+  </properties>
   <image width="70" height="70" source="../images/Tiles/tochLit.png"/>
  </tile>
  <tile id="155">
