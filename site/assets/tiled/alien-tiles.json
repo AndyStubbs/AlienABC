@@ -352,13 +352,25 @@
          "id":56,
          "image":"..\/images\/Tiles\/door_closedMid.png",
          "imageheight":70,
-         "imagewidth":70
+         "imagewidth":70,
+         "properties":[
+                {
+                 "name":"alt-1",
+                 "type":"string",
+                 "value":"door_openMid.png"
+                }]
         }, 
         {
          "id":57,
          "image":"..\/images\/Tiles\/door_closedTop.png",
          "imageheight":70,
-         "imagewidth":70
+         "imagewidth":70,
+         "properties":[
+                {
+                 "name":"alt-1",
+                 "type":"string",
+                 "value":"door_openTop.png"
+                }]
         }, 
         {
          "id":58,

@@ -101,6 +101,23 @@
                  "width":140,
                  "x":3150,
                  "y":490
+                }, 
+                {
+                 "height":110,
+                 "id":16,
+                 "name":"exit",
+                 "properties":[
+                        {
+                         "name":"trigger",
+                         "type":"string",
+                         "value":"exit"
+                        }],
+                 "rotation":0,
+                 "type":"trigger",
+                 "visible":true,
+                 "width":70,
+                 "x":2940,
+                 "y":590
                 }],
          "opacity":1,
          "properties":[
@@ -134,8 +151,8 @@
                  "type":"pickup",
                  "visible":true,
                  "width":0,
-                 "x":1120,
-                 "y":560
+                 "x":1505,
+                 "y":475
                 }, 
                 {
                  "height":0,
@@ -152,8 +169,8 @@
                  "type":"pickup",
                  "visible":true,
                  "width":0,
-                 "x":1960,
-                 "y":280
+                 "x":1995,
+                 "y":270
                 }, 
                 {
                  "height":0,
@@ -171,7 +188,7 @@
                  "visible":true,
                  "width":0,
                  "x":2590,
-                 "y":560
+                 "y":630
                 }, 
                 {
                  "height":70,
@@ -183,6 +200,17 @@
                  "width":70,
                  "x":2870,
                  "y":630
+                }, 
+                {
+                 "height":140,
+                 "id":17,
+                 "name":"exit-image",
+                 "rotation":0,
+                 "type":"marker",
+                 "visible":true,
+                 "width":70,
+                 "x":2940,
+                 "y":560
                 }],
          "opacity":1,
          "properties":[
@@ -312,8 +340,8 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":6,
- "nextobjectid":16,
+ "nextlayerid":7,
+ "nextobjectid":18,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.10.2",

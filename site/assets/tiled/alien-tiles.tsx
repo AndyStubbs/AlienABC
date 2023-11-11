@@ -173,9 +173,15 @@
   <image width="70" height="70" source="../images/Tiles/dirtRight.png"/>
  </tile>
  <tile id="56">
+  <properties>
+   <property name="alt-1" value="door_openMid.png"/>
+  </properties>
   <image width="70" height="70" source="../images/Tiles/door_closedMid.png"/>
  </tile>
  <tile id="57">
+  <properties>
+   <property name="alt-1" value="door_openTop.png"/>
+  </properties>
   <image width="70" height="70" source="../images/Tiles/door_closedTop.png"/>
  </tile>
  <tile id="58">

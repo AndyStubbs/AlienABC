@@ -6,6 +6,7 @@
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
 	const JUMP_FORCE = -0.125;
 	const DEBUG = true;
+	const MIDDLE_LAYER = "Middle 1";
 
 	g.loadLevel = async function ( name ) {
 		if( !game.tiles ) {
@@ -32,6 +33,8 @@
 			"stars": 0,
 			"letters": "___"
 		};
+		game.placedTiles = {};
+		game.markers = {};
 
 		// Create the level container.
 		if( game.container ) {
@@ -139,6 +142,17 @@
 				game.tiles[ tile.id + 1 ] =  {
 					"texture": g.spritesheet.textures[ name ]
 				};
+				// Load alternate sprites
+				if( tile.propertyData[ "alt-1" ] ) {
+					let altId = "alt-1";
+					let cnt = 1;
+					while( tile.propertyData[ altId ] ) {
+						const altName = tile.propertyData[ altId ];
+						game.tiles[ tile.id + 1 ].textureAlt = g.spritesheet.textures[ altName ];
+						cnt += 1;
+						altId = "alt-" + cnt;
+					}
+				}
 			}
 		} );
 	}
@@ -280,6 +294,17 @@
 					tile.tint = "#" + layer.propertyData.tint.substring( 3 );
 				}
 				container.addChild( tile );
+
+				// Add alternate sprite
+				if( game.tiles[ tileId ].textureAlt ) {
+					tile.textureAlt = game.tiles[ tileId ].textureAlt;
+				}
+
+				// Add the tile to the placed tiles map
+				const tileX = Math.round( tile.x ) + "";
+				const tileY = Math.round( tile.y ) + "";
+				game.placedTiles[ layer.name + "-" + tileX + "x" + tileY ] = tile;
+				
 			}
 		}
 	}
@@ -321,6 +346,8 @@
 		item.type = obj.type;
 
 		let bodyType = "";
+		let bodyWidth = 0;
+		let bodyHeight = 0;
 		let isStatic = false;
 		let animationsData = null;
 		let fontProperties = {
@@ -369,6 +396,17 @@
 			];
 			bodyType = "actor";
 			bodyWidthModifier = 0.5;
+		} else if( item.type === "trigger" ) {
+			item.name = obj.name;
+			bodyType = "trigger";
+			isStatic = true;
+			obj.x += obj.width / 2;
+			obj.y += obj.height / 2;
+			bodyWidth = obj.width;
+			bodyHeight = obj.height;
+		} else if( item.type === "marker" ) {
+			bodyType = "none";
+			game.markers[ obj.name ] = obj;
 		} else {
 			bodyType = "none";
 		}
@@ -381,9 +419,6 @@
 		item.container.x = pos.x;
 		item.container.y = pos.y;
 		container.addChild( item.container );
-
-		let bodyWidth = 0;
-		let bodyHeight = 0;
 
 		// Create the item text
 		if( item.text ) {
@@ -678,12 +713,21 @@
 			}
 
 			if( actor && pickup && actor.data.isPlayer ) {
-				pickupItem( actor, pickup );
+				pickupItem( pickup );
+			}
+
+			// Check for a player hitting a trigger.
+			if( a.type === "actor" && b.type === "trigger" ) {
+				actor = game.itemsMap[ pair.bodyA.id ];
+				triggers( actor, game.itemsMap[ pair.bodyB.id ] );
+			} else if( a.type === "trigger" && b.type === "actor" ) {
+				actor = game.itemsMap[ pair.bodyB.id ];
+				triggers( actor, game.itemsMap[ pair.bodyA.id ] );
 			}
 		}
 	}
 
-	function pickupItem( player, pickup ) {
+	function pickupItem( pickup ) {
 		// Remove the item from the physics world.
 		Matter.Composite.remove( game.engine.world, pickup.body );
 
@@ -700,13 +744,68 @@
 		}
 
 		// Update the player.
-		if( player === game.player.obj && pickup.data.isLetter ) {
+		if( pickup.data.isLetter ) {
 			const letter = pickup.text;
 			const index = game.word.indexOf( letter );
 			game.player.letters = game.player.letters.substring( 0, index ) + letter +
 				game.player.letters.substring( index + 1 );
+			
+			// Check if the word is complete
+			if( game.player.letters === game.word ) {
+				openExit();
+			}
 			updateHud();
 		}
+	}
+
+	function openExit() {
+
+		// Find the tiles in the same location as the exit and set them to the alternate sprite.
+		const exitImage = game.markers[ "exit-image" ];
+
+		// Update the first texture
+		const tile1X = Math.round( exitImage.x ) + "";
+		const tile1Y = Math.round( exitImage.y ) + "";
+		const tile1 = game.placedTiles[ MIDDLE_LAYER + "-" + tile1X + "x" + tile1Y ];
+		tile1.texture = tile1.textureAlt;
+		tile1.texture.update();
+
+		// Update the second texture
+		const tile2X = Math.round( exitImage.x ) + "";
+		const tile2Y = Math.round( exitImage.y + tile1.height ) + "";
+		const tile2 = game.placedTiles[
+			MIDDLE_LAYER + "-" + tile2X + "x" + tile2Y
+		];
+		tile2.texture = tile2.textureAlt;
+		tile2.texture.update();
+	}
+
+	function triggers( actor, trigger ) {
+		if( actor.data.isPlayer && trigger.name === "exit" && game.player.letters === game.word ) {
+			closeLevel();
+			g.showTitleScreen();
+		}
+	}
+
+	function closeLevel() {
+		clearInputs();
+		g.app.ticker.remove( step );
+		g.app.stage.removeChild( game.container );
+		game.container.destroy();
+		g.app.stage.removeChild( game.hud );
+		game.hud.destroy();
+		game.container = null;
+		game.player = null;
+		game.items = null;
+		game.itemsMap = null;
+		game.bodies = null;
+		game.engine = null;
+		game.runner = null;
+		game.markers = null;
+		game.level = null;
+		game.tiles = null;
+		game.word = null;
+		game.hud = null;
 	}
 
 } )();
