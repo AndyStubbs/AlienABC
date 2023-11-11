@@ -1,3 +1,9 @@
+# Tiled
+*.tiled-session
+*.tiled-project
+*.tiled-backup
+*.tiled-backup-*
+
 # Logs
 logs
 *.log

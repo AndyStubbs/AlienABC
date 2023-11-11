@@ -32,6 +32,8 @@
 			game.container.destroy();
 		}
 		game.container = new PIXI.Container();
+		game.container.scale.x = 1 / g.app.stage.scale.x;
+		game.container.scale.y = 1 / g.app.stage.scale.y;
 		g.app.stage.addChild( game.container );
 
 		// Create the physics world.
@@ -82,6 +84,14 @@
 		setupInputs();
 	};
 
+	g.resizeGame = function () {
+		if( game.container ) {
+			game.container.scale.x = 1 / g.app.stage.scale.x;
+			game.container.scale.y = 1 / g.app.stage.scale.y;
+			moveCamera();
+		}
+	};
+
 	async function loadTiles() {
 		const response = await fetch( "assets/tiled/alien-tiles.json" );
 		const json = await response.json();
@@ -108,8 +118,6 @@
 				) );
 				tile.x = pos.x;
 				tile.y = pos.y;
-				tile.scale.x = 1 / g.app.stage.scale.x;
-				tile.scale.y = 1 / g.app.stage.scale.y;
 
 				// Add tinting
 				if( layer.propertyData.tint ) {
@@ -219,8 +227,6 @@
 		item.container = new PIXI.Container();
 		item.container.x = pos.x;
 		item.container.y = pos.y;
-		item.container.scale.x = 1 / g.app.stage.scale.x;
-		item.container.scale.y = 1 / g.app.stage.scale.y;
 		container.addChild( item.container );
 
 		let bodyWidth = 0;
@@ -232,8 +238,8 @@
 			item.pixiText.anchor.set( 0.5, 0.5 );
 			item.container.addChild( item.pixiText );
 
-			bodyWidth = ( item.pixiText.width - 8 ) / item.pixiText.scale.x;
-			bodyHeight = ( item.pixiText.height - 18 ) / item.pixiText.scale.y;
+			bodyWidth = ( item.pixiText.width - 8 );
+			bodyHeight = ( item.pixiText.height - 18 );
 
 			if( obj.width ) {
 				obj.x += obj.width / 2;
@@ -336,11 +342,9 @@
 
 	function updatePosition( item ) {
 		const body = item.body;
-		const pos = item.container.parent.toLocal(
-			new PIXI.Point( body.position.x, body.position.y )
-		);
-		item.container.x = pos.x + game.container.x;
-		item.container.y = pos.y + game.container.y;
+
+		item.container.x = body.position.x;
+		item.container.y = body.position.y;
 
 		// Update the rotation.
 		item.container.rotation = body.angle;
@@ -354,23 +358,11 @@
 				item.debug.lineStyle( 1, "#00ff00" );
 			}
 			item.debug.beginFill( "#000000", 0 );
-			let pos = game.container.toLocal(
-				new PIXI.Point(
-					body.vertices[ 0 ].x,
-					body.vertices[ 0 ].y
-				)
-			);
-			item.debug.moveTo( pos.x + game.container.x, pos.y + game.container.y );
+			item.debug.moveTo( body.vertices[ 0 ].x, body.vertices[ 0 ].y );
 			for( let i = 1; i < body.vertices.length; i++ ) {
-				pos = game.container.toLocal(
-					new PIXI.Point( body.vertices[ i ].x, body.vertices[ i ].y )
-				);
-				item.debug.lineTo( pos.x + game.container.x, pos.y + game.container.y );
+				item.debug.lineTo( body.vertices[ i ].x, body.vertices[ i ].y );
 			}
-			pos = game.container.toLocal(
-				new PIXI.Point( body.vertices[ 0 ].x, body.vertices[ 0 ].y )
-			);
-			item.debug.lineTo( pos.x + game.container.x, pos.y + game.container.y );
+			item.debug.lineTo( body.vertices[ 0 ].x, body.vertices[ 0 ].y );
 			item.debug.endFill();
 		}
 	}
@@ -455,17 +447,32 @@
 
 	function moveCamera() {
 		const player = game.player;
-		const pos = g.app.stage.toLocal(
-			new PIXI.Point( player.container.x, player.container.y )
-		);
 
-		let targetX = ( -pos.x / ( 1 / g.app.stage.scale.x ) ) +
-			( g.app.screen.width / g.app.stage.scale.x ) / 2;
-		let targetY = ( -pos.y / ( 1 / g.app.stage.scale.y ) ) +
-			( g.app.screen.height / g.app.stage.scale.y ) / 2;
+		// Convert the coordinates to screen space.
+		const left = -player.container.x / g.app.stage.scale.x;
+		const top = -player.container.y / g.app.stage.scale.y;
+		const offsetX = g.app.screen.width / g.app.stage.scale.x * 0.5;
+		const offsetY = g.app.screen.height / g.app.stage.scale.y * 0.5;
 
-		game.container.x = targetX;
-		game.container.y = targetY;
+		// Set the x position
+		const targetX = left + offsetX;
+		const minX = targetX - ( g.app.screen.width * 0.075 );
+		const maxX = targetX + ( g.app.screen.width * 0.075 );
+		if( game.container.x < minX ) {
+			game.container.x = minX;
+		} else if( game.container.x > maxX ) {
+			game.container.x = maxX;
+		}
+
+		// Set the y position
+		const targetY = top + offsetY;
+		const minY = targetY - ( g.app.screen.height * 0.18 );
+		const maxY = targetY + ( g.app.screen.height * 0.18 );
+		if( game.container.y < minY ) {
+			game.container.y = minY;
+		} else if( game.container.y > maxY ) {
+			game.container.y = maxY;
+		}
 	}
 
 	function setupInputs() {

@@ -53,6 +53,7 @@ const g = {};
 	}
 
 	function resize() {
+		g.app.renderer.resize( window.innerWidth, window.innerHeight );
 		if ( window.innerWidth / window.innerHeight >= g.scale.aspect ) {
 			g.scale.x = window.innerHeight * g.scale.aspect / g.scale.width;
 			g.scale.y = window.innerHeight / g.scale.height;
@@ -66,7 +67,7 @@ const g = {};
 			g.background.width = g.app.screen.width / g.scale.x;
 			g.background.height = g.app.screen.height / g.scale.y;
 		}
-		g.app.renderer.resize( window.innerWidth, window.innerHeight );
+		g.resizeGame();
 	}
 
 } )();
