@@ -21,7 +21,7 @@
   <object id="10" type="ground" x="0" y="70" width="350" height="1330"/>
   <object id="12" type="ground" x="3080" y="420" width="70" height="280"/>
   <object id="14" type="ground" x="3150" y="490" width="140" height="210"/>
-  <object id="16" name="exit" type="trigger" x="2960" y="650" width="30" height="50">
+  <object id="16" name="exit" type="trigger" x="2967" y="650" width="15" height="50">
    <properties>
     <property name="trigger" value="exit"/>
    </properties>
