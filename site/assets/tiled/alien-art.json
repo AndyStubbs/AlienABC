@@ -103,7 +103,7 @@
                  "y":490
                 }, 
                 {
-                 "height":110,
+                 "height":50,
                  "id":16,
                  "name":"exit",
                  "properties":[
@@ -115,9 +115,9 @@
                  "rotation":0,
                  "type":"trigger",
                  "visible":true,
-                 "width":70,
-                 "x":2940,
-                 "y":590
+                 "width":30,
+                 "x":2960,
+                 "y":650
                 }, 
                 {
                  "height":70,
