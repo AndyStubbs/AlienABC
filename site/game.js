@@ -9,13 +9,15 @@
 	const THROW_COOLDOWN = 20;
 	const THROW_ANIMATION_DURATION = 15;
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
-	const JUMP_FORCE = -0.125;
-	const DEBUG = true;
+	const JUMP_FORCE = 0.125;
+	const HIT_FORCE = 0.05;
+	const DEBUG = false;
+	const SHOW_FPS = true;
 	const MIDDLE_LAYER = "Middle 1";
 	const enemies = {
 		"Slime": {
-			"health": 60,
-			"damage": 1,
+			"health": 10,
+			"damage": 10,
 			"speed": -1,
 			"bodyWidthModifier": 0.8,
 			"animationsData": [
@@ -97,7 +99,7 @@
 			"maxHealth": 100,
 			"stars": 0,
 			"letters": "___",
-			"obj": null
+			"item": null
 		};
 		game.placedTiles = {};
 		game.markers = {};
@@ -320,6 +322,19 @@
 		starIcon.y = 30;
 		hud.addChild( starIcon );
 		game.hud.starIcon = starIcon;
+
+		// Show FPS
+		if( SHOW_FPS ) {
+			const fpsText = new PIXI.Text( "FPS: 0", {
+				"fontFamily": "Arial",
+				"fontSize": 12,
+				"fill": "#ffffff"
+			} );
+			fpsText.x = 10;
+			fpsText.y = 60;
+			hud.addChild( fpsText );
+			game.hud.fpsText = fpsText;
+		}
 	}
 
 	function updateHud() {
@@ -468,13 +483,14 @@
 			fontProperties.fill = "#000000";
 			textOffsetY = 8;
 		} else if( item.data.isPlayer ) {
-			game.player.obj = item;
+			game.player.item = item;
 			animationsData = players[ game.player.id ].animationsData;
 			bodyType = "actor";
 			item.bodyWidthModifier = players[ game.player.id ].bodyWidthModifier;
 		} else if ( item.type === "enemy" ) {
 			const enemy = enemies[ obj.name ];
 			item.speed = enemy.speed;
+			item.damage = enemy.damage;
 			animationsData = enemy.animationsData;
 			bodyType = "actor";
 			item.bodyWidthModifier = enemy.bodyWidthModifier;
@@ -510,6 +526,7 @@
 			item.isGrounded = false;
 			item.idleTime = 0;
 			item.throwCooldown = 0;
+			item.hurtStartTime = 0;
 		}
 
 		// Create the item container.
@@ -714,6 +731,29 @@
 	}
 
 	function step( delta ) {
+
+		// Update the FPS text
+		if( SHOW_FPS ) {
+			if( !game.fps ) {
+				game.fps = {
+					"min": Infinity,
+					"max": 0,
+					"avg": 0,
+				};
+			}
+			if( g.app.ticker.FPS < game.fps.min ) {
+				game.fps.min = g.app.ticker.FPS;
+			}
+			if( g.app.ticker.FPS > game.fps.max ) {
+				game.fps.max = g.app.ticker.FPS;
+			}
+			game.fps.avg = ( game.fps.avg + g.app.ticker.FPS ) / 2;
+			game.hud.fpsText.text = "FPS: " + Math.round( g.app.ticker.FPS ) + "\n" +
+				"Min: " + Math.round( game.fps.min ) + "\n" +
+				"Max: " + Math.round( game.fps.max ) + "\n" +
+				"Avg: " + Math.round( game.fps.avg );
+		}
+
 		game.elapsed += delta;
 		moveCamera();
 		for( let i = 0; i < game.items.length; i++ ) {
@@ -733,7 +773,7 @@
 		}
 
 		// Apply player controls
-		applyControls( game.player.obj, delta );
+		applyControls( game.player.item, delta );
 
 		// Move the enemies
 		moveEnemies( delta );
@@ -779,8 +819,15 @@
 			hurtItem.animation.tint = "#ff0000";
 			if( hurtItem.hurtStartTime + HURT_ANIMATION_DURATION < game.elapsed ) {
 				hurtItem.animation.tint = "#ffffff";
-				setAnimation( "front", hurtItem );
 				hurtItemsToRemove.push( hurtItem );
+				setTimeout( () => {
+					hurtItem.isHit = false;
+					if( hurtItem.isGrounded ) {
+						setAnimation( "front", hurtItem );
+					} else {
+						setAnimation( "jump", hurtItem );
+					}
+				}, 450 );
 			}
 		} );
 		hurtItemsToRemove.forEach( hurtItemToRemove => {
@@ -870,7 +917,12 @@
 		}
 	}
 
-	function applyControls( player, delta ) {
+	function applyControls( itemPlayer, delta ) {
+
+		if( itemPlayer.isHit ) {
+			console.log( "Player is hit skipping controls" );
+			return;
+		}
 
 		// Apply player movement for platformer controls.
 		const keys = game.keys;
@@ -885,20 +937,20 @@
 			isWalking = true;
 
 			// Set the orientation.
-			player.animation.scale.x = -1;
+			itemPlayer.animation.scale.x = -1;
 
 			// Apply the movement.
-			Matter.Body.translate( player.body, { "x": -speed, "y": 0 } );
+			Matter.Body.translate( itemPlayer.body, { "x": -speed, "y": 0 } );
 
 		} else if( keys.ArrowRight ) {
 
 			isWalking = true;
 
 			// Set the orientation.
-			player.animation.scale.x = 1;
+			itemPlayer.animation.scale.x = 1;
 
 			// Apply the movement.
-			Matter.Body.translate( player.body, { "x": speed, "y": 0 } );
+			Matter.Body.translate( itemPlayer.body, { "x": speed, "y": 0 } );
 
 		} else if( keys.ArrowDown ) {
 			isDucking = true;
@@ -906,77 +958,87 @@
 
 
 		// Check if falling, allow for a little bit of leeway.
-		if( player.isGrounded && player.body.velocity.y > MAX_VELOCITY_Y_FOR_GROUNDED ) {
-			player.isGrounded = false;
+		if( itemPlayer.isGrounded && itemPlayer.body.velocity.y > MAX_VELOCITY_Y_FOR_GROUNDED ) {
+			itemPlayer.isGrounded = false;
 		}
 
 		// Apply Jumping
 		if( keys.ArrowUp ) {
-			if( player.isGrounded ) {
-				console.log( "falling - " + player.body.velocity.y );
+			if( itemPlayer.isGrounded ) {
+				console.log( "falling - " + itemPlayer.body.velocity.y );
 			}
-			if( player.isGrounded ) {
-				Matter.Body.applyForce(
-					player.body, player.body.position, { "x": 0, "y": JUMP_FORCE }
-				);
-				player.isGrounded = false;
+			if( itemPlayer.isGrounded ) {
+
+				// Don't jump if player is going up
+				if( itemPlayer.body.velocity.y > -1 ) {
+					Matter.Body.applyForce(
+						itemPlayer.body, itemPlayer.body.position, { "x": 0, "y": -JUMP_FORCE }
+					);
+				}
+				itemPlayer.isGrounded = false;
 			}
 		}
 
 		// Apply throwing
-		if( player.throwCooldown > 0 ) {
-			player.throwCooldown -= delta;
+		if( itemPlayer.throwCooldown > 0 ) {
+			itemPlayer.throwCooldown -= delta;
 		}
 		if( keys[ " " ] ) {
-			if( player.throwCooldown <= 0 ) {
-				player.throwCooldown = THROW_COOLDOWN;
-				throwStar( player, isDucking );
+			if( itemPlayer.throwCooldown <= 0 ) {
+				itemPlayer.throwCooldown = THROW_COOLDOWN;
+				throwStar( itemPlayer, isDucking );
 			}
 		}
-		if( player.throwCooldown > THROW_ANIMATION_DURATION ) {
+		if( itemPlayer.throwCooldown > THROW_ANIMATION_DURATION ) {
 			isThrowing = true;
+		}
+
+		if( itemPlayer.isGrounded ) {
+
+			// Stop player from sliding
+			Matter.Body.setVelocity( itemPlayer.body, { "x": 0, "y": itemPlayer.body.velocity.y } );
 		}
 
 		// Set the animation
 		if( isThrowing ) {
-			setAnimation( "throw", player );
-		} else if( isWalking && player.isGrounded ) {
-			setAnimation( "walk", player );
-		} else if( !player.isGrounded ) {
-			setAnimation( "jump", player );
+			setAnimation( "throw", itemPlayer );
+		} else if( isWalking && itemPlayer.isGrounded ) {
+			setAnimation( "walk", itemPlayer );
+		} else if( !itemPlayer.isGrounded ) {
+			setAnimation( "jump", itemPlayer );
 		} else if( isDucking ) {
-			setAnimation( "duck", player );
+			setAnimation( "duck", itemPlayer );
 		} else {
 
 			// Start idle animation
-			player.idleTime += delta;
-			if( player.idleTime > IDLE_ANIMATION_START ) {
-				setAnimation( "front", player );
+			itemPlayer.idleTime += delta;
+			if( itemPlayer.idleTime > IDLE_ANIMATION_START ) {
+				setAnimation( "front", itemPlayer );
 			} else {
-				setAnimation( "stand", player );
+				setAnimation( "stand", itemPlayer );
 			}
 		}
 	}
 
-	function throwStar( player, isDucking ) {
+	function throwStar( itemPlayer, isDucking ) {
 		let yVelocity;
 		if( isDucking ) {
-			yVelocity = -1.5 + player.body.velocity.y / 2;
+			yVelocity = -1.5 + itemPlayer.body.velocity.y / 2;
 		} else {
-			yVelocity = -7 + player.body.velocity.y / 2;
+			yVelocity = -7 + itemPlayer.body.velocity.y / 2;
 		}
 		const star = createItem( {
 			"type": "projectile",
 			"name": "star",
-			"x": player.body.position.x +
-				( player.container.width / 2 + 10 ) * player.animation.scale.x,
-			"y": player.body.position.y + player.container.height / 2 - 10,
+			"x": itemPlayer.body.position.x +
+				( itemPlayer.container.width / 2 + 10 ) * itemPlayer.animation.scale.x,
+			"y": itemPlayer.body.position.y + itemPlayer.container.height / 2 - 10,
 			"width": 10,
 			"height": 10
 		}, game.container );
 		Matter.World.add( game.engine.world, star.body );
 		Matter.Body.setVelocity( star.body, {
-			"x": player.animation.scale.x * 10,
+			"x": itemPlayer.animation.scale.x * 10,
 			"y": yVelocity
 		} );
 		Matter.Body.setAngularVelocity( star.body, 0.25 );
@@ -1083,7 +1145,7 @@
 	}
 
 	function moveCamera() {
-		const player = game.player.obj;
+		const player = game.player.item;
 
 		// Convert the coordinates to screen space.
 		const left = -player.container.x / g.app.stage.scale.x;
@@ -1115,6 +1177,7 @@
 	function setupInputs() {
 		const keys = {};
 		document.addEventListener( "keydown", keydown );
+		window.addEventListener( "blur", blur );
 		document.addEventListener( "keyup", keyup );
 		game.keys = keys;
 	}
@@ -1131,6 +1194,10 @@
 
 	function keyup( e ) {
 		game.keys[ e.key ] = false;
+	}
+
+	function blur() {
+		game.keys = {};
 	}
 
 	function collisionCheck( collisions ) {
@@ -1180,7 +1247,53 @@
 			} else if( b.type === "projectile" ) {
 				projectileHit( game.itemsMap[ pair.bodyB.id ] );
 			}
+
+			// Check for an enemy hitting a player
+			if( a.type === "actor" && b.type === "actor" ) {
+				const actorA = game.itemsMap[ pair.bodyA.id ];
+				const actorB = game.itemsMap[ pair.bodyB.id ];
+				if( actorA.data.isPlayer && !actorB.data.isPlayer ) {
+					playerHit( actorA, actorB );
+				} else if( actorB.data.isPlayer && !actorA.data.isPlayer ) {
+					playerHit( actorB, actorA );
+				}
+			}
 		}
+	}
+
+	function playerHit( itemPlayer, enemy ) {
+		if( itemPlayer.hurtStartTime + HURT_ANIMATION_DURATION < game.elapsed ) {
+			game.player.health -= enemy.damage;
+			updateHud();
+			itemPlayer.hurtStartTime = game.elapsed;
+			game.hurtItems.push( itemPlayer );
+			itemPlayer.isHit = true;
+
+			// Wait until after the collision check to apply the knockback
+			setTimeout( () => {
+
+				// Add knockback effect
+				const xDirection = itemPlayer.body.position.x < enemy.body.position.x ? -1 : 1;
+				const xForce = xDirection * HIT_FORCE / 2;
+				let yForce = -HIT_FORCE;
+				if( itemPlayer.body.velocity.y < -1 ) {
+					yForce = 0;
+				}
+				Matter.Body.applyForce(
+					itemPlayer.body, itemPlayer.body.position, { "x": xForce, "y": yForce }
+				);
+				itemPlayer.isGrounded = false;
+
+				// Check for player death
+				if( game.player.health <= 0 ) {
+					playerDeath( itemPlayer );
+				}
+			}, 0 );
+		}
+	}
+
+	function playerDeath( itemPlayer ) {
+		
 	}
 
 	function projectileHit( projectile ) {
@@ -1258,6 +1371,7 @@
 	}
 
 	function enemyDeath( enemy ) {
+
 		// Create the enemy dead body
 		const deadBody = new PIXI.Sprite( enemy.animations[ "dead" ].textures[ 0 ] );
 		deadBody.anchor.set( 0.5, 0.5 );
