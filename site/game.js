@@ -11,7 +11,7 @@
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
 	const JUMP_FORCE = 0.125;
 	const HIT_FORCE = 0.05;
-	const DEBUG = false;
+	const DEBUG = true;
 	const SHOW_FPS = true;
 	const MIDDLE_LAYER = "Middle 1";
 	const enemies = {
@@ -112,7 +112,7 @@
 
 		// Create the level container.
 		if( game.container ) {
-			game.app.stage.removeChild( game.container );
+			g.app.stage.removeChild( game.container );
 			game.container.destroy();
 		}
 		game.container = new PIXI.Container();
@@ -437,12 +437,13 @@
 
 	function createObjects( layer, container ) {
 		layer.objects.forEach( obj => {
+			const copy = structuredClone( obj );
 			if( obj.type === "ground" ) {
-				createGround( obj );
+				createGround( copy );
 			} else if( obj.type === "world-bounds" ) {
-				createWorldBounds( obj );
+				createWorldBounds( copy );
 			} else {
-				createItem( obj, container );
+				createItem( copy, container );
 			}
 		} );
 	}
@@ -956,7 +957,7 @@
 						if(
 							otherBody.customData.type === "ground" ||
 							otherBody.customData.type === "actor" &&
-							!game.bodiesMap[ otherBody.id ].type === "player"
+							game.bodiesMap[ otherBody.id ].type !== "player"
 						) {
 							sensor.isGrounded = true;
 						}
@@ -1342,10 +1343,12 @@
 				projectileHit( game.bodiesMap[ pair.bodyB.id ] );
 			}
 
-			// Check for an enemy hitting a player
+			// Check for another actor
 			if( a.type === "actor" && b.type === "actor" ) {
 				const actorA = game.bodiesMap[ pair.bodyA.id ];
 				const actorB = game.bodiesMap[ pair.bodyB.id ];
+
+				// Check for a player hitting an enemy
 				if( actorA.type === "player" && actorB.type !== "player" ) {
 					playerHit( actorA, actorB );
 				} else if( actorB.type === "player" && actorA.type !== "player" ) {
@@ -1405,7 +1408,7 @@
 
 		// Go back to title screen
 		setTimeout( () => {
-			closeLevel();
+			closeLevel( g.startLevel );
 		}, 1500 );
 	}
 
@@ -1597,13 +1600,16 @@
 			trigger.name === "exit" &&
 			game.player.letters === game.word
 		) {
-			closeLevel();
+			closeLevel( g.showTitleScreen );
 		}
 	}
 
-	function closeLevel() {
+	function closeLevel( callback ) {
+		if( typeof callback !== "function" ) {
+			throw new Error( "callback must be a function" );
+		}
+		game.afterFadeOut = callback;
 		clearInputs();
-
 		g.app.ticker.add( fadeOutStep );
 	}
 
@@ -1628,10 +1634,18 @@
 			Matter.Runner.stop( game.runner );
 			Matter.Engine.clear( game.engine );
 
-			// Clear all the game variables
-			game = {};
+			// Get the callback function
+			const callback = game.afterFadeOut;
 
-			g.showTitleScreen();
+			// Reset the level
+			game = {
+				"tiles": game.tiles,
+				"level": game.level,
+				"word": game.word
+			};
+
+			// Run the callback
+			callback();
 		}
 	}
 
