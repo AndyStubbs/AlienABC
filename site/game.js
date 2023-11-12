@@ -30,25 +30,28 @@
 				"front", "p1_front.png", 0, 0,
 				"jump", "p1_jump.png", 0, 0,
 				"walk", "p1_walk/p1_walk", 11, 0.3,
-				"hurt", "p1_hurt.png", 0, 0
+				"hurt", "p1_hurt.png", 0, 0,
+				"throw", "p1_jump.png", 0, 0,
 			]
 		}, "p2": {
 			"bodyWidthModifier": 0.5,
 			"animationsData": [
-				"stand", "p1_stand.png", 0, 0,
-				"front", "p1_front.png", 0, 0,
-				"jump", "p1_jump.png", 0, 0,
-				"walk", "p1_walk/p1_walk", 11, 0.3,
-				"hurt", "p1_hurt.png", 0, 0
+				"stand", "p2_stand.png", 0, 0,
+				"front", "p2_front.png", 0, 0,
+				"jump", "p2_jump.png", 0, 0,
+				"walk", "p2_walk/p2_walk", 11, 0.3,
+				"hurt", "p2_hurt.png", 0, 0,
+				"throw", "p2_jump.png", 0, 0,
 			]
 		}, "p3": {
 			"bodyWidthModifier": 0.5,
 			"animationsData": [
-				"stand", "p1_stand.png", 0, 0,
-				"front", "p1_front.png", 0, 0,
-				"jump", "p1_jump.png", 0, 0,
-				"walk", "p1_walk/p1_walk", 11, 0.3,
-				"hurt", "p1_hurt.png", 0, 0
+				"stand", "p3_stand.png", 0, 0,
+				"front", "p3_front.png", 0, 0,
+				"jump", "p3_jump.png", 0, 0,
+				"walk", "p3_walk/p3_walk", 11, 0.3,
+				"hurt", "p3_hurt.png", 0, 0,
+				"throw", "p3_jump.png", 0, 0,
 			]
 		}
 	};
@@ -722,12 +725,20 @@
 			for( let i = 0; i < sensors.length; i++ ) {
 				const sensor = sensors[ i ];
 				sensor.isGrounded = false;
-				const collisions = Matter.Query.collides( sensor.body, game.groundBodies );
+				const collisions = Matter.Query.collides( sensor.body, game.bodies );
 				if( collisions.length > 0 ) {
 					for( let j = 0; j < collisions.length; j++ ) {
 						const collision = collisions[ j ];
-						if( collision.bodyA.customData.type === "ground" ||
-							collision.bodyB.customData.type === "ground" ) {
+						if( collision.bodyA === collision.bodyB ) {
+							continue;
+						}
+						const otherBody = collision.bodyA === sensor.body ?
+								collision.bodyB : collision.bodyA;
+						if(
+							otherBody.customData.type === "ground" ||
+							otherBody.customData.type === "actor" &&
+							!game.itemsMap[ otherBody.id ].data.isPlayer
+						) {
 							sensor.isGrounded = true;
 						}
 					}
@@ -827,7 +838,7 @@
 		} else if( !player.isGrounded ) {
 			setAnimation( "jump", player );
 		} else {
-			setAnimation( "front", player );
+			setAnimation( "stand", player );
 		}
 	}
 
