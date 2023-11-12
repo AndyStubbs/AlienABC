@@ -27,7 +27,7 @@
 			"bodyWidthModifier": 0.5,
 			"animationsData": [
 				"stand", "p1_stand.png", 0, 0,
-				"front", "p1_front.png", 0, 0,
+				"front", [ "p1_front.png", 10, "p1_blink.png" ], 1, 0.1,
 				"jump", "p1_jump.png", 0, 0,
 				"walk", "p1_walk/p1_walk", 11, 0.3,
 				"hurt", "p1_hurt.png", 0, 0,
@@ -37,7 +37,7 @@
 			"bodyWidthModifier": 0.5,
 			"animationsData": [
 				"stand", "p2_stand.png", 0, 0,
-				"front", "p2_front.png", 0, 0,
+				"front", [ "p2_front.png", 10, "p2_blink.png" ], 1, 0.1,
 				"jump", "p2_jump.png", 0, 0,
 				"walk", "p2_walk/p2_walk", 11, 0.3,
 				"hurt", "p2_hurt.png", 0, 0,
@@ -47,7 +47,7 @@
 			"bodyWidthModifier": 0.5,
 			"animationsData": [
 				"stand", "p3_stand.png", 0, 0,
-				"front", "p3_front.png", 0, 0,
+				"front", [ "p3_front.png", 10, "p3_blink.png" ], 1, 0.1,
 				"jump", "p3_jump.png", 0, 0,
 				"walk", "p3_walk/p3_walk", 11, 0.3,
 				"hurt", "p3_hurt.png", 0, 0,
@@ -83,7 +83,7 @@
 		game.itemsMap = {};
 		game.items = [];
 		game.player = {
-			"id": "p2",
+			"id": "p3",
 			"health": 100,
 			"maxHealth": 100,
 			"stars": 0,
@@ -521,12 +521,23 @@
 				if( count === 0 ) {
 					frames.push( g.spritesheet.textures[ textureBaseName ] );
 				} else {
-					for( let j = 1; j <= count; j++ ) {
-						const id = j < 10 ? "0" + j : j;
-						if( g.spritesheet.textures[ textureBaseName + id + ".png" ] ) {
-							frames.push( g.spritesheet.textures[ textureBaseName + id + ".png" ] );
-						} else {
-							frames.push( g.spritesheet.textures[ textureBaseName + j + ".png" ] );
+					if( textureBaseName instanceof Array ) {
+						for( let j = 0; j < textureBaseName[ 1 ]; j++ ) {
+							frames.push( g.spritesheet.textures[ textureBaseName[ 0 ] ] );
+						}
+						frames.push( g.spritesheet.textures[ textureBaseName[ 2 ] ] );
+					} else {
+						for( let j = 1; j <= count; j++ ) {
+							const id = j < 10 ? "0" + j : j;
+							if( g.spritesheet.textures[ textureBaseName + id + ".png" ] ) {
+								frames.push(
+									g.spritesheet.textures[ textureBaseName + id + ".png" ]
+								);
+							} else {
+								frames.push(
+									g.spritesheet.textures[ textureBaseName + j + ".png" ]
+								);
+							}
 						}
 					}
 				}
@@ -832,11 +843,21 @@
 
 		// Set the animation
 		if( isWalking && player.isGrounded ) {
+			player.standingTime = 0;
 			setAnimation( "walk", player );
 		} else if( !player.isGrounded ) {
+			player.standingTime = 0;
 			setAnimation( "jump", player );
 		} else {
-			setAnimation( "stand", player );
+			if( player.standingTime === undefined ) {
+				player.standingTime = 0;
+			}
+			player.standingTime += delta;
+			if( player.standingTime > 300 ) {
+				setAnimation( "front", player );
+			} else {
+				setAnimation( "stand", player );
+			}
 		}
 	}
 
