@@ -203,8 +203,8 @@
                  "type":"pickup",
                  "visible":true,
                  "width":0,
-                 "x":2207,
-                 "y":263.333333333333
+                 "x":2275,
+                 "y":264.666666666667
                 }, 
                 {
                  "height":0,
@@ -221,8 +221,8 @@
                  "type":"pickup",
                  "visible":true,
                  "width":0,
-                 "x":2590,
-                 "y":630
+                 "x":2764.66666666667,
+                 "y":615.333333333333
                 }, 
                 {
                  "height":70,
@@ -245,6 +245,18 @@
                  "width":70,
                  "x":2940,
                  "y":560
+                }, 
+                {
+                 "height":0,
+                 "id":22,
+                 "name":"Star",
+                 "point":true,
+                 "rotation":0,
+                 "type":"pickup",
+                 "visible":true,
+                 "width":0,
+                 "x":944.666666666667,
+                 "y":404
                 }],
          "opacity":1,
          "properties":[
@@ -375,7 +387,7 @@
          "y":0
         }],
  "nextlayerid":7,
- "nextobjectid":21,
+ "nextobjectid":23,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.10.2",

@@ -52,6 +52,13 @@
 			]
 		}
 	};
+	const items = {
+		"star": {
+			"animationsData": [
+				"front", "star.png", 0, 0
+			]
+		}
+	};
 
 	g.loadLevel = async function ( name ) {
 		if( !game.tiles ) {
@@ -405,6 +412,7 @@
 		};
 		let textOffsetY = 0;
 		let bodyWidthModifier = 1;
+		let bodyHeightModifier = 1;
 		let hasCliffSensors = false;
 
 		// parse properties
@@ -414,19 +422,26 @@
 			}
 		}
 
-		if( item.data.isLetter ) {
-			item.text = obj.name;
+		if( item.type === "pickup" ) {
 			bodyType = "pickup";
 			isStatic = true;
 			item.baseX = obj.x;
 			item.baseY = obj.y;
-			fontProperties.fontSize = 36;
-			fontProperties.fill = "#ffffff";
-			fontProperties.stroke = "#000000";
-			fontProperties.strokeThickness = 3;
-			fontProperties.dropShadow = true;
-			fontProperties.dropShadowColor = "#000000";
-			fontProperties.dropShadowBlur = 4;
+			if( item.data.isLetter ) {
+				item.text = obj.name;
+				fontProperties.fontSize = 36;
+				fontProperties.fill = "#ffffff";
+				fontProperties.stroke = "#000000";
+				fontProperties.strokeThickness = 3;
+				fontProperties.dropShadow = true;
+				fontProperties.dropShadowColor = "#000000";
+				fontProperties.dropShadowBlur = 4;
+			} else if( obj.name === "Star" ) {
+				item.isStar = true;
+				animationsData = items.star.animationsData;
+				bodyWidthModifier = 0.35;
+				bodyHeightModifier = 0.35;
+			}
 		} else if( item.type === "sign" ) {
 			item.text = obj.name;
 			bodyType = "none";
@@ -528,7 +543,7 @@
 
 			// Update the size and position of the item to match the animation.
 			bodyWidth = item.animation.width * bodyWidthModifier;
-			bodyHeight = item.animation.height;
+			bodyHeight = item.animation.height * bodyHeightModifier;
 			obj.y -= item.animation.height / 2;
 			pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
 			item.container.y = pos.y;
