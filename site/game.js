@@ -91,7 +91,7 @@
 		}
 
 		game.bodies = [];
-		game.itemsMap = {};
+		game.bodiesMap = {};
 		game.items = [];
 		game.player = {
 			"id": "p1",
@@ -104,9 +104,11 @@
 		game.placedTiles = {};
 		game.markers = {};
 		game.enemies = [];
-		game.deadEnemies = [];
+		game.fadeSprites = [];
 		game.starExplosions = [];
 		game.hurtItems = [];
+		game.fadeItems = [];
+		game.worldBounds = null;
 
 		// Create the level container.
 		if( game.container ) {
@@ -437,6 +439,8 @@
 		layer.objects.forEach( obj => {
 			if( obj.type === "ground" ) {
 				createGround( obj );
+			} else if( obj.type === "world-bounds" ) {
+				createWorldBounds( obj );
 			} else {
 				createItem( obj, container );
 			}
@@ -458,6 +462,15 @@
 		);
 		body.friction = 0;
 		game.bodies.push( body );
+	}
+
+	function createWorldBounds( obj ) {
+		game.worldBounds = {
+			"bounds": {
+				"min": { "x": obj.x, "y": obj.y },
+				"max": { "x": obj.x + obj.width, "y": obj.y + obj.height }
+			}
+		};
 	}
 
 	function createItem( obj, container ) {
@@ -669,7 +682,7 @@
 
 			// Add item for easy access
 			game.items.push( item );
-			game.itemsMap[ item.body.id ] = item;
+			game.bodiesMap[ item.body.id ] = item;
 
 			// Add cliff sensors
 			if( hasSensors ) {
@@ -837,18 +850,31 @@
 		} );
 
 		// Run the dead bodies fade out
-		const deadEnemiesToRemove = [];
-		game.deadEnemies.forEach( deadEnemy => {
-			if( deadEnemy.startTime + DEAD_BODY_FADE_START < game.elapsed ) {
-				deadEnemy.sprite.alpha -= 0.01;
-				if( deadEnemy.sprite.alpha <= 0 ) {
-					game.container.removeChild( deadEnemy.sprite );
-					deadEnemiesToRemove.push( deadEnemy );
+		const fadeSpritesToRemove = [];
+		game.fadeSprites.forEach( fadeSprite => {
+			if( fadeSprite.startTime + DEAD_BODY_FADE_START < game.elapsed ) {
+				fadeSprite.sprite.alpha -= 0.01;
+				if( fadeSprite.sprite.alpha <= 0 ) {
+					game.container.removeChild( fadeSprite.sprite );
+					fadeSpritesToRemove.push( fadeSprite );
 				}
 			}
 		} );
-		deadEnemiesToRemove.forEach( deadEnemyToRemove => {
-			game.deadEnemies.splice( game.deadEnemies.indexOf( deadEnemyToRemove ), 1 );
+		fadeSpritesToRemove.forEach( fadeSpriteToRemove => {
+			game.fadeSprites.splice( game.fadeSprites.indexOf( fadeSpriteToRemove ), 1 );
+		} );
+
+		// Run the items fade out
+		const fadeItemsToRemove = [];
+		game.fadeItems.forEach( fadeItem => {
+			fadeItem.animation.alpha -= 0.005;
+			if( fadeItem.animation.alpha <= 0 ) {
+				fadeItemsToRemove.push( fadeItem );
+			}
+		} );
+		fadeItemsToRemove.forEach( fadeItemToRemove => {
+			game.fadeItems.splice( game.fadeItems.indexOf( fadeItemToRemove ), 1 );
+			destroyItem( fadeItemToRemove );
 		} );
 
 		// Update hurt animations
@@ -880,6 +906,26 @@
 		item.container.x = body.position.x;
 		item.container.y = body.position.y;
 
+		// Check if the item is outside the world bounds
+		if( game.worldBounds && !item.outOfBounds ) {
+			if( body.position.x < game.worldBounds.bounds.min.x ||
+				body.position.x > game.worldBounds.bounds.max.x ||
+				body.position.y < game.worldBounds.bounds.min.y ||
+				body.position.y > game.worldBounds.bounds.max.y
+			) {
+				item.outOfBounds = true;
+				setTimeout( () => {
+					if( item.type === "projectile" ) {
+						game.fadeItems.push( item );
+					} else if( item.type === "enemy" ) {
+						enemyDeath( item );
+					} else if( item.data.isPlayer ) {
+						playerDeath( item );
+					}
+				}, 0 );
+			}
+		}
+
 		// Update the rotation.
 		item.container.rotation = body.angle;
 
@@ -909,7 +955,7 @@
 						if(
 							otherBody.customData.type === "ground" ||
 							otherBody.customData.type === "actor" &&
-							!game.itemsMap[ otherBody.id ].data.isPlayer
+							!game.bodiesMap[ otherBody.id ].data.isPlayer
 						) {
 							sensor.isGrounded = true;
 						}
@@ -1186,9 +1232,17 @@
 	function moveCamera() {
 		const player = game.player.item;
 
+		// Make sure camera doesn't go beyond the world bounds
+		const cameraMinX = game.worldBounds.bounds.min.x;
+		const cameraMaxX = game.worldBounds.bounds.max.x;
+		const cameraMinY = game.worldBounds.bounds.min.y;
+		const cameraMaxY = game.worldBounds.bounds.max.y;
+		const cameraX = Math.max( cameraMinX, Math.min( cameraMaxX, player.container.x ) );
+		const cameraY = Math.max( cameraMinY, Math.min( cameraMaxY, player.container.y ) );
+
 		// Convert the coordinates to screen space.
-		const left = -player.container.x / g.app.stage.scale.x;
-		const top = -player.container.y / g.app.stage.scale.y;
+		const left = -cameraX / g.app.stage.scale.x;
+		const top = -cameraY / g.app.stage.scale.y;
 		const offsetX = g.app.screen.width / g.app.stage.scale.x * 0.5;
 		const offsetY = g.app.screen.height / g.app.stage.scale.y * 0.5;
 
@@ -1251,20 +1305,20 @@
 
 			// Check for an actor hitting the ground
 			if( a.type === "actor" && b.type === "ground" && penetration.y < 0 ) {
-				game.itemsMap[ pair.bodyA.id ].isGrounded = true;
+				game.bodiesMap[ pair.bodyA.id ].isGrounded = true;
 			} else if ( a.type === "ground" && b.type === "actor" && penetration.y > 0) {
-				game.itemsMap[ pair.bodyB.id ].isGrounded = true;
+				game.bodiesMap[ pair.bodyB.id ].isGrounded = true;
 			}
 
 			// Check for a player hitting a pickup item.
 			let actor;
 			let pickup;
 			if( a.type === "actor" && b.type === "pickup" ) {
-				actor = game.itemsMap[ pair.bodyA.id ];
-				pickup = game.itemsMap[ pair.bodyB.id ];
+				actor = game.bodiesMap[ pair.bodyA.id ];
+				pickup = game.bodiesMap[ pair.bodyB.id ];
 			} else if( a.type === "pickup" && b.type === "actor" ) {
-				actor = game.itemsMap[ pair.bodyB.id ];
-				pickup = game.itemsMap[ pair.bodyA.id ];
+				actor = game.bodiesMap[ pair.bodyB.id ];
+				pickup = game.bodiesMap[ pair.bodyA.id ];
 			}
 
 			if( actor && pickup && actor.data.isPlayer ) {
@@ -1273,24 +1327,24 @@
 
 			// Check for a player hitting a trigger.
 			if( a.type === "actor" && b.type === "trigger" ) {
-				actor = game.itemsMap[ pair.bodyA.id ];
-				triggers( actor, game.itemsMap[ pair.bodyB.id ] );
+				actor = game.bodiesMap[ pair.bodyA.id ];
+				triggers( actor, game.bodiesMap[ pair.bodyB.id ] );
 			} else if( a.type === "trigger" && b.type === "actor" ) {
-				actor = game.itemsMap[ pair.bodyB.id ];
-				triggers( actor, game.itemsMap[ pair.bodyA.id ] );
+				actor = game.bodiesMap[ pair.bodyB.id ];
+				triggers( actor, game.bodiesMap[ pair.bodyA.id ] );
 			}
 
 			// Check for a projectile hitting something
-			if( a.type === "projectile" ) {
-				projectileHit( game.itemsMap[ pair.bodyA.id ] );
-			} else if( b.type === "projectile" ) {
-				projectileHit( game.itemsMap[ pair.bodyB.id ] );
+			if( a.type === "projectile" && b.type !== "pickup") {
+				projectileHit( game.bodiesMap[ pair.bodyA.id ] );
+			} else if( b.type === "projectile" && a.type !== "pickup" ) {
+				projectileHit( game.bodiesMap[ pair.bodyB.id ] );
 			}
 
 			// Check for an enemy hitting a player
 			if( a.type === "actor" && b.type === "actor" ) {
-				const actorA = game.itemsMap[ pair.bodyA.id ];
-				const actorB = game.itemsMap[ pair.bodyB.id ];
+				const actorA = game.bodiesMap[ pair.bodyA.id ];
+				const actorB = game.bodiesMap[ pair.bodyB.id ];
 				if( actorA.data.isPlayer && !actorB.data.isPlayer ) {
 					playerHit( actorA, actorB );
 				} else if( actorB.data.isPlayer && !actorA.data.isPlayer ) {
@@ -1358,16 +1412,9 @@
 		if( !projectile ) {
 			return;
 		}
-		// Destory projectile
-		Matter.Composite.remove( game.engine.world, projectile.body );
-		game.bodies.splice( game.bodies.indexOf( projectile.body ), 1 );
-		game.items.splice( game.items.indexOf( projectile ), 1 );
-		delete game.itemsMap[ projectile.body.id ];
-		projectile.container.parent.removeChild( projectile.container );
-		projectile.container.destroy();
-		if( DEBUG ) {
-			game.container.removeChild( projectile.debug );
-		}
+
+		// Remove the projectile
+		destroyItem( projectile );
 
 		// Create a star explosion
 		const starExplosion = new PIXI.Sprite( g.spritesheet.textures[ "star2.png" ] );
@@ -1408,7 +1455,7 @@
 		} );
 		for( let i = 0; i < damageArea.length; i++ ) {
 			const body = damageArea[ i ];
-			const item = game.itemsMap[ body.id ];
+			const item = game.bodiesMap[ body.id ];
 			if( item && item.type === "enemy" ) {
 				const distance = Math.sqrt(
 					Math.pow( projectile.body.position.x - body.position.x, 2 ) +
@@ -1436,45 +1483,64 @@
 		deadBody.x = enemy.body.position.x;
 		deadBody.y = enemy.body.position.y + ( enemy.container.height - deadBody.height ) / 2;
 		game.container.addChild( deadBody );
-		game.deadEnemies.push( {
+		game.fadeSprites.push( {
 			"sprite": deadBody,
 			"startTime": game.elapsed,
 		} );
 
-		// Remove the enemy from the physics world.
-		Matter.Composite.remove( game.engine.world, enemy.body );
+		// Remove the enemy
+		destroyItem( enemy );
+	}
 
-		// Remove the enemy from the game.
-		game.bodies.splice( game.bodies.indexOf( enemy.body ), 1 );
-		game.enemies.splice( game.enemies.indexOf( enemy ), 1 );
-		delete game.itemsMap[ enemy.body.id ];
-		game.items.splice( game.items.indexOf( enemy ), 1 );
+	function destroyItem( item ) {
 
-		// Remove the enemy from the display.
-		enemy.container.parent.removeChild( enemy.container );
-		enemy.container.destroy();
+		if( item.isDestroyed ) {
+			return;
+		}
+
+		item.isDestroyed = true;
+
+		// Remove the item from the physics world.
+		if( item.body ) {
+			Matter.Composite.remove( game.engine.world, item.body );
+			game.bodies.splice( game.bodies.indexOf( item.body ), 1 );
+			delete game.bodiesMap[ item.body.id ];
+		}
+
+		// Remove the item from the game.
+		game.items.splice( game.items.indexOf( item ), 1 );
+
+		// Remove the item from other arrays
+		if( item.type === "enemy" ) {
+			game.enemies.splice( game.enemies.indexOf( item ), 1 );
+		}
+
+		// Remove the item from the display.
+		item.container.parent.removeChild( item.container );
+		item.container.destroy();
 		if( DEBUG ) {
-			game.container.removeChild( enemy.debug );
+			game.container.removeChild( item.debug );
 		}
 
 		// Remove their sensors
-		if( enemy.sensors ) {
-			for( let i = 0; i < enemy.sensors.length; i++ ) {
-				Matter.Composite.remove( game.engine.world, enemy.sensors[ i ].body );
+		if( item.sensors ) {
+			for( let i = 0; i < item.sensors.length; i++ ) {
+				Matter.Composite.remove( game.engine.world, item.sensors[ i ].body );
 				if( DEBUG ) {
-					game.container.removeChild( enemy.sensors[ i ].debug );
+					game.container.removeChild( item.sensors[ i ].debug );
 				}
 			}
 		}
 	}
 
 	function pickupItem( pickup ) {
+
 		// Remove the item from the physics world.
 		Matter.Composite.remove( game.engine.world, pickup.body );
 
 		// Remove the item from the game.
 		game.items.splice( game.items.indexOf( pickup ), 1 );
-		delete game.itemsMap[ pickup.body.id ];
+		delete game.bodiesMap[ pickup.body.id ];
 
 		// Remove the item from the display.
 		pickup.container.parent.removeChild( pickup.container );

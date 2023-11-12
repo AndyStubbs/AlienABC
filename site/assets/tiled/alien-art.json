@@ -164,6 +164,17 @@
                  "width":0,
                  "x":560,
                  "y":700
+                }, 
+                {
+                 "height":910,
+                 "id":24,
+                 "name":"",
+                 "rotation":0,
+                 "type":"world-bounds",
+                 "visible":true,
+                 "width":2870,
+                 "x":280,
+                 "y":0
                 }],
          "opacity":1,
          "properties":[
@@ -399,7 +410,7 @@
          "y":0
         }],
  "nextlayerid":7,
- "nextobjectid":24,
+ "nextobjectid":25,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.10.2",
