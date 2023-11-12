@@ -2,7 +2,7 @@
 
 ( function () {
 
-	const game = {};
+	let game = {};
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
 	const JUMP_FORCE = -0.125;
 	const DEBUG = true;
@@ -413,7 +413,7 @@
 		let textOffsetY = 0;
 		let bodyWidthModifier = 1;
 		let bodyHeightModifier = 1;
-		let hasCliffSensors = false;
+		let hasSensors = false;
 
 		// parse properties
 		if( obj.properties ) {
@@ -458,12 +458,13 @@
 			bodyType = "actor";
 			bodyWidthModifier = players[ game.player.id ].bodyWidthModifier;
 		} else if ( item.type === "enemy" ) {
-			item.enemy = enemies[ obj.name ];
-			animationsData = item.enemy.animationsData;
+			const enemy = enemies[ obj.name ];
+			item.speed = enemy.speed;
+			animationsData = enemy.animationsData;
 			bodyType = "actor";
 			bodyWidthModifier = enemies[ obj.name ].bodyWidthModifier;
 			game.enemies.push( item );
-			hasCliffSensors = true;
+			hasSensors = true;
 		} else if( item.type === "trigger" ) {
 			item.name = obj.name;
 			bodyType = "trigger";
@@ -577,16 +578,16 @@
 			game.itemsMap[ item.body.id ] = item;
 
 			// Add cliff sensors
-			if( hasCliffSensors ) {
+			if( hasSensors ) {
 				const sensorWidth = 5;
 				const sensorHeight = 5;
 				const sensorOffsetX = bodyWidth / 2 + sensorWidth;
 				const sensorOffsetY = bodyHeight / 2 + sensorHeight;
-				item.cliffSensors = [
+				item.sensors = [
 					{
 						"width": sensorWidth,
 						"height": sensorHeight,
-						"sensorOffsetX": sensorOffsetX,
+						"sensorOffsetX": -sensorOffsetX,
 						"sensorOffsetY": sensorOffsetY,
 						"body":
 							Matter.Bodies.rectangle(
@@ -617,33 +618,56 @@
 									"customData": { "type": "cliffSensor" }
 								}
 							)
+					}, {
+						// Wall sensors
+						"width": sensorWidth,
+						"height": sensorHeight,
+						"sensorOffsetX": sensorOffsetX,
+						"sensorOffsetY": 0,
+						"body":
+							Matter.Bodies.rectangle(
+								obj.x + sensorOffsetX,
+								obj.y,
+								sensorWidth,
+								sensorHeight,
+								{
+									"isStatic": true,
+									"isSensor": true,
+									"customData": { "type": "wallSensor" }
+								}
+							)
+					}, {
+						"width": sensorWidth,
+						"height": sensorHeight,
+						"sensorOffsetX": -sensorOffsetX,
+						"sensorOffsetY": 0,
+						"body":
+							Matter.Bodies.rectangle(
+								obj.x - sensorOffsetX,
+								obj.y,
+								sensorWidth,
+								sensorHeight,
+								{
+									"isStatic": true,
+									"isSensor": true,
+									"customData": { "type": "wallSensor" }
+								}
+							)
 					}
+
 				];
-				game.bodies.push( item.cliffSensors[ 0 ].body );
-				game.bodies.push( item.cliffSensors[ 1 ].body );
+				game.bodies.push( item.sensors[ 0 ].body );
+				game.bodies.push( item.sensors[ 1 ].body );
+				game.bodies.push( item.sensors[ 2 ].body );
+				game.bodies.push( item.sensors[ 3 ].body );
 
 				// Add debug graphics
 				if( DEBUG ) {
-					item.cliffSensors[ 0 ].debug = new PIXI.Graphics();
-					item.cliffSensors[ 1 ].debug = new PIXI.Graphics();
-					game.container.addChild( item.cliffSensors[ 0 ].debug );
-					game.container.addChild( item.cliffSensors[ 1 ].debug );
-
-					// Add a debug graphics object to show the physical body
-					item.cliffSensors[ 0 ].debug.lineStyle( 1, "#ff0000" );
-					item.cliffSensors[ 0 ].debug.beginFill( "#000000", 0 );
-					item.cliffSensors[ 0 ].debug.drawRect(
-						-sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight
-					);
-					item.cliffSensors[ 0 ].debug.endFill();
-
-					// Add a debug graphics object to show the physical body
-					item.cliffSensors[ 1 ].debug.lineStyle( 1, "#ff0000" );
-					item.cliffSensors[ 1 ].debug.beginFill( "#000000", 0 );
-					item.cliffSensors[ 1 ].debug.drawRect(
-						-sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight
-					);
-					item.cliffSensors[ 1 ].debug.endFill();
+					for( let i = 0; i < item.sensors.length; i++ ) {
+						const sensor = item.sensors[ i ];
+						sensor.debug = new PIXI.Graphics();
+						game.container.addChild( sensor.debug );
+					}
 				}
 			}
 		}
@@ -684,16 +708,15 @@
 		// Update the rotation.
 		item.container.rotation = body.angle;
 
-		if( item.cliffSensors ) {
-			const sensors = item.cliffSensors;
-			Matter.Body.setPosition( sensors[ 0 ].body, {
-				"x": body.position.x - sensors[ 0 ].sensorOffsetX,
-				"y": body.position.y + sensors[ 0 ].sensorOffsetY
-			} );
-			Matter.Body.setPosition( sensors[ 1 ].body, {
-				"x": body.position.x + sensors[ 1 ].sensorOffsetX,
-				"y": body.position.y + sensors[ 1 ].sensorOffsetY
-			} );
+		if( item.sensors ) {
+			const sensors = item.sensors;
+			for( let i = 0; i < sensors.length; i++ ) {
+				const sensor = sensors[ i ];
+				Matter.Body.setPosition( sensor.body, {
+					"x": body.position.x + sensor.sensorOffsetX,
+					"y": body.position.y + sensor.sensorOffsetY
+				} );
+			}
 
 			// Check if the cliff sensors are colliding with anything
 			for( let i = 0; i < sensors.length; i++ ) {
@@ -729,8 +752,8 @@
 			item.debug.endFill();
 
 			// Update position of the cliff sensors debug graphics
-			if( item.cliffSensors ) {
-				item.cliffSensors.forEach( sensor => {
+			if( item.sensors ) {
+				item.sensors.forEach( sensor => {
 					sensor.debug.clear();
 					sensor.debug.x = sensor.body.position.x;
 					sensor.debug.y = sensor.body.position.y;
@@ -838,20 +861,31 @@
 				enemy.isGrounded = false;
 			}
 
-			// Check if the enemy is near the edge of a platform
-			if( enemy.isGrounded && enemy.cliffSensors ) {
-				const sensors = enemy.cliffSensors;
+			// Check the enemy's sensors
+			if( enemy.isGrounded && enemy.sensors ) {
+				const sensors = enemy.sensors;
+
+				// Check if the enemy is about to walk off a cliff
 				if(
-					( enemy.enemy.speed < 0 && !sensors[ 0 ].isGrounded ) ||
-					( enemy.enemy.speed > 0 && !sensors[ 1 ].isGrounded )
+					( enemy.speed < 0 && !sensors[ 0 ].isGrounded ) ||
+					( enemy.speed > 0 && !sensors[ 1 ].isGrounded )
 				) {
-					enemy.enemy.speed *= -1;
+					enemy.speed *= -1;
+					enemy.animation.scale.x *= -1;
+				}
+
+				// Check if the enemy is about to hit a wall
+				if(
+					( enemy.speed < 0 && sensors[ 3 ].isGrounded ) ||
+					( enemy.speed > 0 && sensors[ 2 ].isGrounded )
+				) {
+					enemy.speed *= -1;
 					enemy.animation.scale.x *= -1;
 				}
 			}
 
 			// Apply the movement
-			const speed = enemy.enemy.speed * delta;
+			const speed = enemy.speed * delta;
 			Matter.Body.translate( body, { "x": speed, "y": 0 } );
 
 			// Set the animation
@@ -973,7 +1007,7 @@
 			game.container.removeChild( pickup.debug );
 		}
 
-		// Update the player.
+		// Update the game stats
 		if( pickup.data.isLetter ) {
 			const letter = pickup.text;
 			const index = game.word.indexOf( letter );
@@ -984,6 +1018,9 @@
 			if( game.player.letters === game.word ) {
 				openExit();
 			}
+			updateHud();
+		} else if( pickup.isStar ) {
+			game.player.stars += 1;
 			updateHud();
 		}
 	}
@@ -1019,23 +1056,20 @@
 
 	function closeLevel() {
 		clearInputs();
+
+		// Remove the graphics itesm
 		g.app.ticker.remove( step );
 		g.app.stage.removeChild( game.container );
 		game.container.destroy();
 		g.app.stage.removeChild( game.hud );
 		game.hud.destroy();
-		game.container = null;
-		game.player = null;
-		game.items = null;
-		game.itemsMap = null;
-		game.bodies = null;
-		game.engine = null;
-		game.runner = null;
-		game.markers = null;
-		game.level = null;
-		game.tiles = null;
-		game.word = null;
-		game.hud = null;
+
+		// Remove the physics items
+		Matter.Runner.stop( game.runner );
+		Matter.Engine.clear( game.engine );
+
+		// Clear all the variables
+		game = {};
 	}
 
 } )();

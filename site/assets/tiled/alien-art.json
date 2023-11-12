@@ -152,6 +152,18 @@
                  "width":70,
                  "x":910,
                  "y":490
+                }, 
+                {
+                 "height":0,
+                 "id":23,
+                 "name":"Slime",
+                 "point":true,
+                 "rotation":0,
+                 "type":"enemy",
+                 "visible":true,
+                 "width":0,
+                 "x":560,
+                 "y":700
                 }],
          "opacity":1,
          "properties":[
@@ -387,7 +399,7 @@
          "y":0
         }],
  "nextlayerid":7,
- "nextobjectid":23,
+ "nextobjectid":24,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.10.2",
