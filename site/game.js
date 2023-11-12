@@ -17,7 +17,7 @@
 	const enemies = {
 		"Slime": {
 			"health": 10,
-			"damage": 10,
+			"damage": 40,
 			"speed": -1,
 			"bodyWidthModifier": 0.8,
 			"animationsData": [
@@ -323,6 +323,29 @@
 		hud.addChild( starIcon );
 		game.hud.starIcon = starIcon;
 
+		// Create the center message text
+		const centerMessageText = new PIXI.Text( "", {
+			"fontFamily": "Times New Roman",
+			"fontSize": 74,
+			"fill": "#ffffff",
+			"stroke": "#000000",
+			"strokeThickness": 3,
+			"dropShadow": true,
+			"dropShadowColor": "#000000",
+		} );
+		centerMessageText.anchor.set( 0.5, 0.5 );
+
+		// Create a center message overlay for big messages
+		const centerMessage = new PIXI.Graphics();
+		centerMessage.x = 0;
+		centerMessage.y = 0;
+
+		// Add the center message to the HUD
+		centerMessage.addChild( centerMessageText );
+		hud.addChild( centerMessage );
+		game.hud.centerMessage = centerMessage;
+		game.hud.centerMessageText = centerMessageText;
+
 		// Show FPS
 		if( SHOW_FPS ) {
 			const fpsText = new PIXI.Text( "FPS: 0", {
@@ -335,6 +358,22 @@
 			hud.addChild( fpsText );
 			game.hud.fpsText = fpsText;
 		}
+	}
+
+	function setCenterMessage( message ) {
+		game.hud.centerMessageText.text = message;
+		const padding = 50;
+		const left = ( g.app.screen.width - game.hud.centerMessageText.width ) / 2 - padding;
+		const top = ( g.app.screen.height - game.hud.centerMessageText.height ) / 2 - padding;
+		const right = left + game.hud.centerMessageText.width + padding * 2;
+		const bottom = top + game.hud.centerMessageText.height + padding * 2;
+		game.hud.centerMessageText.x = left + padding + game.hud.centerMessageText.width / 2;
+		game.hud.centerMessageText.y = top + padding + game.hud.centerMessageText.height / 2;
+		game.hud.centerMessage.clear();
+		game.hud.centerMessage.beginFill( "#00000055" );
+		game.hud.centerMessage.drawRoundedRect ( left, top, right - left, bottom - top, 25 );
+		game.hud.centerMessage.endFill();
+		game.hud.centerMessage.visible = true;
 	}
 
 	function updateHud() {
@@ -919,8 +958,8 @@
 
 	function applyControls( itemPlayer, delta ) {
 
-		if( itemPlayer.isHit ) {
-			console.log( "Player is hit skipping controls" );
+		if( itemPlayer.isHit || itemPlayer.isDead ) {
+			setAnimation( "hurt", itemPlayer );
 			return;
 		}
 
@@ -1262,6 +1301,9 @@
 	}
 
 	function playerHit( itemPlayer, enemy ) {
+		if( itemPlayer.isHit || itemPlayer.isDead ) {
+			return;
+		}
 		if( itemPlayer.hurtStartTime + HURT_ANIMATION_DURATION < game.elapsed ) {
 			game.player.health -= enemy.damage;
 			updateHud();
@@ -1286,6 +1328,8 @@
 
 				// Check for player death
 				if( game.player.health <= 0 ) {
+					game.player.health = 0;
+					updateHud();
 					playerDeath( itemPlayer );
 				}
 			}, 0 );
@@ -1293,7 +1337,21 @@
 	}
 
 	function playerDeath( itemPlayer ) {
-		
+
+		// Set the player to dead
+		itemPlayer.isDead = true;
+
+		// Show the game over message
+		setCenterMessage( "Game Over" );
+
+		// Give the player inertia so they fall over
+		Matter.Body.setInertia( itemPlayer.body, 100 );
+		Matter.Body.setAngularVelocity( itemPlayer.body, 0.15 );
+
+		// Go back to title screen
+		setTimeout( () => {
+			closeLevel();
+		}, 1500 );
 	}
 
 	function projectileHit( projectile ) {
@@ -1469,26 +1527,41 @@
 	function triggers( actor, trigger ) {
 		if( actor.data.isPlayer && trigger.name === "exit" && game.player.letters === game.word ) {
 			closeLevel();
-			g.showTitleScreen();
 		}
 	}
 
 	function closeLevel() {
 		clearInputs();
 
-		// Remove the graphics itesm
-		g.app.ticker.remove( step );
-		g.app.stage.removeChild( game.container );
-		game.container.destroy();
-		g.app.stage.removeChild( game.hud );
-		game.hud.destroy();
+		g.app.ticker.add( fadeOutStep );
+	}
 
-		// Remove the physics items
-		Matter.Runner.stop( game.runner );
-		Matter.Engine.clear( game.engine );
+	function fadeOutStep( delta ) {
+		game.container.alpha -= 0.01 * delta;
+		game.hud.alpha -= 0.01 * delta;
+		if( game.container.alpha <= 0 ) {
 
-		// Clear all the variables
-		game = {};
+			// Remove the fade out ticker
+			g.app.ticker.remove( fadeOutStep );
+
+			// Remove the game step ticker
+			g.app.ticker.remove( step );
+
+			// Remove the graphics items
+			g.app.stage.removeChild( game.container );
+			game.container.destroy();
+			g.app.stage.removeChild( game.hud );
+			game.hud.destroy();
+
+			// Remove the physics items
+			Matter.Runner.stop( game.runner );
+			Matter.Engine.clear( game.engine );
+
+			// Clear all the game variables
+			game = {};
+
+			g.showTitleScreen();
+		}
 	}
 
 } )();
