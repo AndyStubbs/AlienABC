@@ -3,9 +3,12 @@
 ( function () {
 
 	let game = {};
+	const IDLE_ANIMATION_START = 200;
+	const THROW_COOLDOWN = 20;
+	const THROW_ANIMATION_DURATION = 15;
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
 	const JUMP_FORCE = -0.125;
-	const DEBUG = true;
+	const DEBUG = false;
 	const MIDDLE_LAYER = "Middle 1";
 	const enemies = {
 		"Slime": {
@@ -87,11 +90,13 @@
 			"health": 100,
 			"maxHealth": 100,
 			"stars": 0,
-			"letters": "___"
+			"letters": "___",
+			"obj": null
 		};
 		game.placedTiles = {};
 		game.markers = {};
 		game.enemies = [];
+		game.starExplosions = [];
 
 		// Create the level container.
 		if( game.container ) {
@@ -405,6 +410,7 @@
 		let bodyType = "";
 		let bodyWidth = 0;
 		let bodyHeight = 0;
+		let bodyInertia = Infinity;
 		let isStatic = false;
 		let animationsData = null;
 		let fontProperties = {
@@ -477,17 +483,33 @@
 		} else if( item.type === "marker" ) {
 			bodyType = "none";
 			game.markers[ obj.name ] = obj;
+		} else if( item.type === "projectile" ) {
+			bodyType = "projectile";
+			isStatic = false;
+			obj.x += obj.width / 2;
+			obj.y += obj.height / 2;
+			animationsData = items.star.animationsData;
+			bodyWidthModifier = 0.35;
+			bodyHeightModifier = 0.35;
+			bodyInertia = 0;
 		} else {
 			bodyType = "none";
 		}
 
+		// Set item for actor
+		if( bodyType === "actor" ) {
+			item.isGrounded = false;
+			item.idleTime = 0;
+			item.throwCooldown = 0;
+		}
+
 		// Get the position of the item in the game container.
-		let pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
+		//let pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
 
 		// Create the item container.
 		item.container = new PIXI.Container();
-		item.container.x = pos.x;
-		item.container.y = pos.y;
+		item.container.x = obj.x;
+		item.container.y = obj.y;
 		container.addChild( item.container );
 
 		// Create the item text
@@ -505,9 +527,9 @@
 			if( obj.height ) {
 				obj.y += obj.height / 2 - textOffsetY;
 			}
-			pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
-			item.container.x = pos.x;
-			item.container.y = pos.y;
+			//pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
+			item.container.x = obj.x;
+			item.container.y = obj.y;
 		}
 
 		// Create the animations
@@ -558,8 +580,8 @@
 			bodyWidth = item.animation.width * bodyWidthModifier;
 			bodyHeight = item.animation.height * bodyHeightModifier;
 			obj.y -= item.animation.height / 2;
-			pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
-			item.container.y = pos.y;
+			//pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
+			item.container.y = obj.y;
 		}
 
 		if( bodyType !== "none" ) {
@@ -571,7 +593,7 @@
 				bodyWidth,
 				bodyHeight,
 				{
-					"inertia": Infinity,
+					"inertia": bodyInertia,
 					"isStatic": isStatic,
 					"isSensor": isStatic,
 					"customData": { "type": bodyType }
@@ -683,6 +705,8 @@
 				}
 			}
 		}
+
+		return item;
 	}
 
 	function step( delta ) {
@@ -709,6 +733,25 @@
 
 		// Move the enemies
 		moveEnemies( delta );
+
+		// Run star explosions
+		const starsToRemove = [];
+		game.starExplosions.forEach( starExplosion => {
+			starExplosion.scale.x += 0.06;
+			starExplosion.scale.y += 0.06;
+			starExplosion.rotation += 0.25;
+			if( starExplosion.scale.x > 0.65 ) {
+				starExplosion.alpha -= 0.15;
+			}
+			if( starExplosion.scale.x > 1 ) {
+				game.container.removeChild( starExplosion );
+				//game.starExplosions.splice( game.starExplosions.indexOf( starExplosion ), 1 );
+				starsToRemove.push( starExplosion );
+			}
+		} );
+		starsToRemove.forEach( starToRemove => {
+			game.starExplosions.splice( game.starExplosions.indexOf( starToRemove ), 1 );
+		} );
 	}
 
 	function updatePosition( item ) {
@@ -801,6 +844,7 @@
 
 		// Apply movement.
 		let isWalking = false;
+		let isThrowing = false;
 		if( keys.ArrowLeft ) {
 
 			isWalking = true;
@@ -841,19 +885,32 @@
 			}
 		}
 
+		// Apply throwing
+		if( player.throwCooldown > 0 ) {
+			player.throwCooldown -= delta;
+		}
+		if( keys[ " " ] ) {
+			if( player.throwCooldown <= 0 ) {
+				player.throwCooldown = THROW_COOLDOWN;
+				throwStar( player );
+			}
+		}
+		if( player.throwCooldown > THROW_ANIMATION_DURATION ) {
+			isThrowing = true;
+		}
+
 		// Set the animation
-		if( isWalking && player.isGrounded ) {
-			player.standingTime = 0;
+		if( isThrowing ) {
+			setAnimation( "throw", player );
+		} else if( isWalking && player.isGrounded ) {
 			setAnimation( "walk", player );
 		} else if( !player.isGrounded ) {
-			player.standingTime = 0;
 			setAnimation( "jump", player );
 		} else {
-			if( player.standingTime === undefined ) {
-				player.standingTime = 0;
-			}
-			player.standingTime += delta;
-			if( player.standingTime > 300 ) {
+
+			// Start idle animation
+			player.idleTime += delta;
+			if( player.idleTime > IDLE_ANIMATION_START ) {
 				setAnimation( "front", player );
 			} else {
 				setAnimation( "stand", player );
@@ -861,11 +918,34 @@
 		}
 	}
 
+	function throwStar( player ) {
+		const star = createItem( {
+			"type": "projectile",
+			"name": "star",
+			"x": player.body.position.x +
+				( player.container.width / 2 + 10 ) * player.animation.scale.x,
+			"y": player.body.position.y + player.container.height / 2 - 10,
+			"width": 10,
+			"height": 10
+		}, game.container );
+		Matter.World.add( game.engine.world, star.body );
+		Matter.Body.setVelocity( star.body, {
+			"x": player.animation.scale.x * 10,
+			"y": -7 + player.body.velocity.y / 2
+		} );
+		Matter.Body.setAngularVelocity( star.body, 0.25 );
+	}
+
 	function setAnimation( name, actor ) {
 
 		// If animation is already active then do nothing
 		if( actor.animation === actor.animations[ name ] ) {
 			return;
+		}
+
+		// Since we are changing animations, reset the idle time.
+		if( name !== "front" ) {
+			actor.idleTime = 0;
 		}
 
 		// Stop the current animation
@@ -1018,7 +1098,37 @@
 				actor = game.itemsMap[ pair.bodyB.id ];
 				triggers( actor, game.itemsMap[ pair.bodyA.id ] );
 			}
+
+			// Check for a projectile hitting something
+			if( a.type === "projectile" ) {
+				projectileHit( game.itemsMap[ pair.bodyA.id ], game.itemsMap[ pair.bodyB.id ] );
+			} else if( b.type === "projectile" ) {
+				projectileHit( game.itemsMap[ pair.bodyB.id ],  game.itemsMap[ pair.bodyA.id ] );
+			}
 		}
+	}
+
+	function projectileHit( projectile, other ) {
+		// Destory projectile
+		Matter.Composite.remove( game.engine.world, projectile.body );
+		game.items.splice( game.items.indexOf( projectile ), 1 );
+		delete game.itemsMap[ projectile.body.id ];
+		projectile.container.parent.removeChild( projectile.container );
+		projectile.container.destroy();
+		if( DEBUG ) {
+			game.container.removeChild( projectile.debug );
+		}
+
+		// Create a star explosion
+		const starExplosion = new PIXI.Sprite( g.spritesheet.textures[ "star2.png" ] );
+		starExplosion.anchor.set( 0.5, 0.5 );
+		starExplosion.x = projectile.body.position.x;
+		starExplosion.y = projectile.body.position.y;
+		starExplosion.scale.set( 0.05, 0.05 );
+		starExplosion.rotation = Math.random() * Math.PI * 2;
+		starExplosion.tint = "#F1FCC2";
+		game.container.addChild( starExplosion );
+		game.starExplosions.push( starExplosion );
 	}
 
 	function pickupItem( pickup ) {
