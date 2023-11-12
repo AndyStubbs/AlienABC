@@ -3,6 +3,8 @@
 ( function () {
 
 	let game = {};
+	const DEAD_BODY_FADE_START = 100;
+	const HURT_ANIMATION_DURATION = 10;
 	const IDLE_ANIMATION_START = 200;
 	const THROW_COOLDOWN = 20;
 	const THROW_ANIMATION_DURATION = 15;
@@ -12,7 +14,7 @@
 	const MIDDLE_LAYER = "Middle 1";
 	const enemies = {
 		"Slime": {
-			"health": 1,
+			"health": 60,
 			"damage": 1,
 			"speed": -1,
 			"bodyWidthModifier": 0.8,
@@ -21,7 +23,8 @@
 				"front", "slimeWalk1.png", 0, 0,
 				"jump", "slimeWalk1.png", 0, 0,
 				"walk", "slimeWalk", 2, 0.05,
-				"hurt", "slimeDead.png", 0, 0
+				"hurt", "slimeWalk1.png", 0, 0,
+				"dead", "slimeDead.png", 0, 0,
 			]
 		}
 	};
@@ -96,7 +99,9 @@
 		game.placedTiles = {};
 		game.markers = {};
 		game.enemies = [];
+		game.deadEnemies = [];
 		game.starExplosions = [];
+		game.hurtItems = [];
 
 		// Create the level container.
 		if( game.container ) {
@@ -469,9 +474,10 @@
 			item.speed = enemy.speed;
 			animationsData = enemy.animationsData;
 			bodyType = "actor";
-			bodyWidthModifier = enemies[ obj.name ].bodyWidthModifier;
+			bodyWidthModifier = enemy.bodyWidthModifier;
 			game.enemies.push( item );
 			hasSensors = true;
+			item.health = enemy.health;
 		} else if( item.type === "trigger" ) {
 			item.name = obj.name;
 			bodyType = "trigger";
@@ -503,9 +509,6 @@
 			item.throwCooldown = 0;
 		}
 
-		// Get the position of the item in the game container.
-		//let pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
-
 		// Create the item container.
 		item.container = new PIXI.Container();
 		item.container.x = obj.x;
@@ -527,7 +530,6 @@
 			if( obj.height ) {
 				obj.y += obj.height / 2 - textOffsetY;
 			}
-			//pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
 			item.container.x = obj.x;
 			item.container.y = obj.y;
 		}
@@ -580,7 +582,6 @@
 			bodyWidth = item.animation.width * bodyWidthModifier;
 			bodyHeight = item.animation.height * bodyHeightModifier;
 			obj.y -= item.animation.height / 2;
-			//pos = game.container.toLocal( new PIXI.Point( obj.x, obj.y ) );
 			item.container.y = obj.y;
 		}
 
@@ -751,6 +752,36 @@
 		} );
 		starsToRemove.forEach( starToRemove => {
 			game.starExplosions.splice( game.starExplosions.indexOf( starToRemove ), 1 );
+		} );
+
+		// Run the dead bodies fade out
+		const deadEnemiesToRemove = [];
+		game.deadEnemies.forEach( deadEnemy => {
+			if( deadEnemy.startTime + DEAD_BODY_FADE_START < game.elapsed ) {
+				deadEnemy.sprite.alpha -= 0.01;
+				if( deadEnemy.sprite.alpha <= 0 ) {
+					game.container.removeChild( deadEnemy.sprite );
+					deadEnemiesToRemove.push( deadEnemy );
+				}
+			}
+		} );
+		deadEnemiesToRemove.forEach( deadEnemyToRemove => {
+			game.deadEnemies.splice( game.deadEnemies.indexOf( deadEnemyToRemove ), 1 );
+		} );
+
+		// Update hurt animations
+		const hurtItemsToRemove = [];
+		game.hurtItems.forEach( hurtItem => {
+			setAnimation( "hurt", hurtItem );
+			hurtItem.animation.tint = "#ff0000";
+			if( hurtItem.hurtStartTime + HURT_ANIMATION_DURATION < game.elapsed ) {
+				hurtItem.animation.tint = "#ffffff";
+				setAnimation( "front", hurtItem );
+				hurtItemsToRemove.push( hurtItem );
+			}
+		} );
+		hurtItemsToRemove.forEach( hurtItemToRemove => {
+			game.hurtItems.splice( game.hurtItems.indexOf( hurtItemToRemove ), 1 );
 		} );
 	}
 
@@ -1101,16 +1132,20 @@
 
 			// Check for a projectile hitting something
 			if( a.type === "projectile" ) {
-				projectileHit( game.itemsMap[ pair.bodyA.id ], game.itemsMap[ pair.bodyB.id ] );
+				projectileHit( game.itemsMap[ pair.bodyA.id ] );
 			} else if( b.type === "projectile" ) {
-				projectileHit( game.itemsMap[ pair.bodyB.id ],  game.itemsMap[ pair.bodyA.id ] );
+				projectileHit( game.itemsMap[ pair.bodyB.id ] );
 			}
 		}
 	}
 
-	function projectileHit( projectile, other ) {
+	function projectileHit( projectile ) {
+		if( !projectile ) {
+			return;
+		}
 		// Destory projectile
 		Matter.Composite.remove( game.engine.world, projectile.body );
+		game.bodies.splice( game.bodies.indexOf( projectile.body ), 1 );
 		game.items.splice( game.items.indexOf( projectile ), 1 );
 		delete game.itemsMap[ projectile.body.id ];
 		projectile.container.parent.removeChild( projectile.container );
@@ -1129,6 +1164,92 @@
 		starExplosion.tint = "#F1FCC2";
 		game.container.addChild( starExplosion );
 		game.starExplosions.push( starExplosion );
+
+		// Add a damage effect for enemies in the explosion radius
+		const damageRadius = 75;
+
+		if( DEBUG ) {
+			const damageAreaDebug = new PIXI.Graphics();
+			damageAreaDebug.lineStyle( 1, "#ff0000" );
+			damageAreaDebug.beginFill( "#000000", 0 );
+			damageAreaDebug.drawCircle(
+				projectile.body.position.x, projectile.body.position.y, damageRadius
+			);
+			damageAreaDebug.endFill();
+			game.container.addChild( damageAreaDebug );
+			setTimeout( () => {
+				game.container.removeChild( damageAreaDebug );
+			}, 1000 );
+		}
+		const damageArea = Matter.Query.region( game.bodies, {
+			"min": {
+				"x": projectile.body.position.x - damageRadius,
+				"y": projectile.body.position.y - damageRadius
+			},
+			"max": {
+				"x": projectile.body.position.x + damageRadius,
+				"y": projectile.body.position.y + damageRadius
+			}
+		} );
+		for( let i = 0; i < damageArea.length; i++ ) {
+			const body = damageArea[ i ];
+			const item = game.itemsMap[ body.id ];
+			if( item && item.type === "enemy" ) {
+				const distance = Math.sqrt(
+					Math.pow( projectile.body.position.x - body.position.x, 2 ) +
+					Math.pow( projectile.body.position.y - body.position.y, 2 )
+				);
+				const damage = Math.max( 0, 100 * ( damageRadius - distance ) / damageRadius );
+				console.log( "damage: " + damage );
+				item.health -= damage;
+				if( damage > 0 ) {
+					item.hurtStartTime = game.elapsed;
+					game.hurtItems.push( item );
+				}
+				if( item.health <= 0 ) {
+					enemyDeath( item );
+				}
+			}
+		}
+	}
+
+	function enemyDeath( enemy ) {
+		// Create the enemy dead body
+		const deadBody = new PIXI.Sprite( enemy.animations[ "dead" ].textures[ 0 ] );
+		deadBody.anchor.set( 0.5, 0.5 );
+		deadBody.x = enemy.body.position.x;
+		deadBody.y = enemy.body.position.y + ( enemy.container.height - deadBody.height ) / 2;
+		game.container.addChild( deadBody );
+		game.deadEnemies.push( {
+			"sprite": deadBody,
+			"startTime": game.elapsed,
+		} );
+
+		// Remove the enemy from the physics world.
+		Matter.Composite.remove( game.engine.world, enemy.body );
+
+		// Remove the enemy from the game.
+		game.bodies.splice( game.bodies.indexOf( enemy.body ), 1 );
+		game.enemies.splice( game.enemies.indexOf( enemy ), 1 );
+		delete game.itemsMap[ enemy.body.id ];
+		game.items.splice( game.items.indexOf( enemy ), 1 );
+
+		// Remove the enemy from the display.
+		enemy.container.parent.removeChild( enemy.container );
+		enemy.container.destroy();
+		if( DEBUG ) {
+			game.container.removeChild( enemy.debug );
+		}
+
+		// Remove their sensors
+		if( enemy.sensors ) {
+			for( let i = 0; i < enemy.sensors.length; i++ ) {
+				Matter.Composite.remove( game.engine.world, enemy.sensors[ i ].body );
+				if( DEBUG ) {
+					game.container.removeChild( enemy.sensors[ i ].debug );
+				}
+			}
+		}
 	}
 
 	function pickupItem( pickup ) {
