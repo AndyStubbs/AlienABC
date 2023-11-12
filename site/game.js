@@ -638,7 +638,8 @@
 					}
 				}
 				const animation = new PIXI.AnimatedSprite( frames );
-				animation.anchor.set( 0.5, 0.5 );
+				animation.anchor.set( 0.5, 1 );
+				animation.y = animation.height / 2;
 				animation.animationSpeed = speed;
 				animation.visible = false;
 				item.animations[ name ] = animation;
@@ -1345,9 +1346,9 @@
 			if( a.type === "actor" && b.type === "actor" ) {
 				const actorA = game.bodiesMap[ pair.bodyA.id ];
 				const actorB = game.bodiesMap[ pair.bodyB.id ];
-				if( actorA.type === "player" && !actorB.type === "player" ) {
+				if( actorA.type === "player" && actorB.type !== "player" ) {
 					playerHit( actorA, actorB );
-				} else if( actorB.type === "player" && !actorA.type === "player" ) {
+				} else if( actorB.type === "player" && actorA.type !== "player" ) {
 					playerHit( actorB, actorA );
 				}
 			}
