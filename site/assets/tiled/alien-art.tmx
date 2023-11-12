@@ -9,10 +9,7 @@
    <property name="order" type="int" value="4"/>
   </properties>
   <object id="1" type="ground" x="350" y="700" width="1050" height="700"/>
-  <object id="2" name="Start" type="actor" x="840" y="700">
-   <properties>
-    <property name="isPlayer" type="bool" value="true"/>
-   </properties>
+  <object id="2" name="Start" type="player" x="840" y="700">
    <point/>
   </object>
   <object id="3" type="ground" x="1610" y="700" width="1890" height="700"/>

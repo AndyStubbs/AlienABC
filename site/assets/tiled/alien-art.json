@@ -23,14 +23,8 @@
                  "id":2,
                  "name":"Start",
                  "point":true,
-                 "properties":[
-                        {
-                         "name":"isPlayer",
-                         "type":"bool",
-                         "value":true
-                        }],
                  "rotation":0,
-                 "type":"actor",
+                 "type":"player",
                  "visible":true,
                  "width":0,
                  "x":840,

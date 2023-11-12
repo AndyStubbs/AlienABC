@@ -534,7 +534,7 @@
 			}
 			fontProperties.fill = "#000000";
 			textOffsetY = 8;
-		} else if( item.data.isPlayer ) {
+		} else if( item.type === "player" ) {
 			game.player.item = item;
 			animationsData = players[ game.player.id ].animationsData;
 			bodyType = "actor";
@@ -919,7 +919,7 @@
 						game.fadeItems.push( item );
 					} else if( item.type === "enemy" ) {
 						enemyDeath( item );
-					} else if( item.data.isPlayer ) {
+					} else if( item.type === "player" ) {
 						playerDeath( item );
 					}
 				}, 0 );
@@ -955,7 +955,7 @@
 						if(
 							otherBody.customData.type === "ground" ||
 							otherBody.customData.type === "actor" &&
-							!game.bodiesMap[ otherBody.id ].data.isPlayer
+							!game.bodiesMap[ otherBody.id ].type === "player"
 						) {
 							sensor.isGrounded = true;
 						}
@@ -1321,7 +1321,7 @@
 				pickup = game.bodiesMap[ pair.bodyA.id ];
 			}
 
-			if( actor && pickup && actor.data.isPlayer ) {
+			if( actor && pickup && actor.type === "player" ) {
 				pickupItem( pickup );
 			}
 
@@ -1345,9 +1345,9 @@
 			if( a.type === "actor" && b.type === "actor" ) {
 				const actorA = game.bodiesMap[ pair.bodyA.id ];
 				const actorB = game.bodiesMap[ pair.bodyB.id ];
-				if( actorA.data.isPlayer && !actorB.data.isPlayer ) {
+				if( actorA.type === "player" && !actorB.type === "player" ) {
 					playerHit( actorA, actorB );
-				} else if( actorB.data.isPlayer && !actorA.data.isPlayer ) {
+				} else if( actorB.type === "player" && !actorA.type === "player" ) {
 					playerHit( actorB, actorA );
 				}
 			}
@@ -1591,7 +1591,11 @@
 	}
 
 	function triggers( actor, trigger ) {
-		if( actor.data.isPlayer && trigger.name === "exit" && game.player.letters === game.word ) {
+		if(
+			actor.type === "player" &&
+			trigger.name === "exit" &&
+			game.player.letters === game.word
+		) {
 			closeLevel();
 		}
 	}
