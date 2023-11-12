@@ -38,6 +38,7 @@
 				"walk", "p1_walk/p1_walk", 11, 0.3,
 				"hurt", "p1_hurt.png", 0, 0,
 				"throw", "p1_jump.png", 0, 0,
+				"duck", "p1_duck.png", 0, 0,
 			]
 		}, "p2": {
 			"bodyWidthModifier": 0.5,
@@ -48,6 +49,7 @@
 				"walk", "p2_walk/p2_walk", 11, 0.3,
 				"hurt", "p2_hurt.png", 0, 0,
 				"throw", "p2_jump.png", 0, 0,
+				"duck", "p2_duck.png", 0, 0,
 			]
 		}, "p3": {
 			"bodyWidthModifier": 0.5,
@@ -58,6 +60,7 @@
 				"walk", "p3_walk/p3_walk", 11, 0.3,
 				"hurt", "p3_hurt.png", 0, 0,
 				"throw", "p3_jump.png", 0, 0,
+				"duck", "p3_duck.png", 0, 0,
 			]
 		}
 	};
@@ -89,7 +92,7 @@
 		game.itemsMap = {};
 		game.items = [];
 		game.player = {
-			"id": "p3",
+			"id": "p1",
 			"health": 100,
 			"maxHealth": 100,
 			"stars": 0,
@@ -423,8 +426,8 @@
 			"align": "center"
 		};
 		let textOffsetY = 0;
-		let bodyWidthModifier = 1;
-		let bodyHeightModifier = 1;
+		item.bodyWidthModifier = 1;
+		item.bodyHeightModifier = 1;
 		let hasSensors = false;
 
 		// parse properties
@@ -451,8 +454,8 @@
 			} else if( obj.name === "Star" ) {
 				item.isStar = true;
 				animationsData = items.star.animationsData;
-				bodyWidthModifier = 0.35;
-				bodyHeightModifier = 0.35;
+				item.bodyWidthModifier = 0.35;
+				item.bodyHeightModifier = 0.35;
 			}
 		} else if( item.type === "sign" ) {
 			item.text = obj.name;
@@ -468,13 +471,13 @@
 			game.player.obj = item;
 			animationsData = players[ game.player.id ].animationsData;
 			bodyType = "actor";
-			bodyWidthModifier = players[ game.player.id ].bodyWidthModifier;
+			item.bodyWidthModifier = players[ game.player.id ].bodyWidthModifier;
 		} else if ( item.type === "enemy" ) {
 			const enemy = enemies[ obj.name ];
 			item.speed = enemy.speed;
 			animationsData = enemy.animationsData;
 			bodyType = "actor";
-			bodyWidthModifier = enemy.bodyWidthModifier;
+			item.bodyWidthModifier = enemy.bodyWidthModifier;
 			game.enemies.push( item );
 			hasSensors = true;
 			item.health = enemy.health;
@@ -495,8 +498,8 @@
 			obj.x += obj.width / 2;
 			obj.y += obj.height / 2;
 			animationsData = items.star.animationsData;
-			bodyWidthModifier = 0.35;
-			bodyHeightModifier = 0.35;
+			item.bodyWidthModifier = 0.35;
+			item.bodyHeightModifier = 0.35;
 			bodyInertia = 0;
 		} else {
 			bodyType = "none";
@@ -579,8 +582,8 @@
 			item.animation.play();
 
 			// Update the size and position of the item to match the animation.
-			bodyWidth = item.animation.width * bodyWidthModifier;
-			bodyHeight = item.animation.height * bodyHeightModifier;
+			bodyWidth = item.animation.width * item.bodyWidthModifier;
+			bodyHeight = item.animation.height * item.bodyHeightModifier;
 			obj.y -= item.animation.height / 2;
 			item.container.y = obj.y;
 		}
@@ -876,6 +879,7 @@
 		// Apply movement.
 		let isWalking = false;
 		let isThrowing = false;
+		let isDucking = false;
 		if( keys.ArrowLeft ) {
 
 			isWalking = true;
@@ -896,7 +900,10 @@
 			// Apply the movement.
 			Matter.Body.translate( player.body, { "x": speed, "y": 0 } );
 
+		} else if( keys.ArrowDown ) {
+			isDucking = true;
 		}
+
 
 		// Check if falling, allow for a little bit of leeway.
 		if( player.isGrounded && player.body.velocity.y > MAX_VELOCITY_Y_FOR_GROUNDED ) {
@@ -923,7 +930,7 @@
 		if( keys[ " " ] ) {
 			if( player.throwCooldown <= 0 ) {
 				player.throwCooldown = THROW_COOLDOWN;
-				throwStar( player );
+				throwStar( player, isDucking );
 			}
 		}
 		if( player.throwCooldown > THROW_ANIMATION_DURATION ) {
@@ -937,6 +944,8 @@
 			setAnimation( "walk", player );
 		} else if( !player.isGrounded ) {
 			setAnimation( "jump", player );
+		} else if( isDucking ) {
+			setAnimation( "duck", player );
 		} else {
 
 			// Start idle animation
@@ -949,7 +958,13 @@
 		}
 	}
 
-	function throwStar( player ) {
+	function throwStar( player, isDucking ) {
+		let yVelocity;
+		if( isDucking ) {
+			yVelocity = -1.5 + player.body.velocity.y / 2;
+		} else {
+			yVelocity = -7 + player.body.velocity.y / 2;
+		}
 		const star = createItem( {
 			"type": "projectile",
 			"name": "star",
@@ -962,7 +977,7 @@
 		Matter.World.add( game.engine.world, star.body );
 		Matter.Body.setVelocity( star.body, {
 			"x": player.animation.scale.x * 10,
-			"y": -7 + player.body.velocity.y / 2
+			"y": yVelocity
 		} );
 		Matter.Body.setAngularVelocity( star.body, 0.25 );
 	}
@@ -983,6 +998,9 @@
 		actor.animation.visible = false;
 		actor.animation.gotoAndStop( 0 );
 
+		// Calculate the vertical displacement of the animation
+		const displacementY = actor.animation.height - actor.animations[ name ].height;
+
 		// Math the orientation of the new animation to the current orientation
 		actor.animations[ name ].scale.x = actor.animation.scale.x;
 
@@ -990,6 +1008,32 @@
 		actor.animation = actor.animations[ name ];
 		actor.animation.visible = true;
 		actor.animation.play();
+
+		// Only update the physics body if the displacement is significant
+		if( Math.abs( displacementY ) > 5 ) {
+
+			// Update the size and position of the item to match the animation.
+			const bodyWidth = actor.animation.width * actor.bodyWidthModifier;
+			const bodyHeight = actor.animation.height * actor.bodyHeightModifier;
+
+			// Update the physics body
+			Matter.Body.set( actor.body, {
+				"vertices": [
+					{ "x": -bodyWidth / 2, "y": -bodyHeight / 2 },
+					{ "x": bodyWidth / 2, "y": -bodyHeight / 2 },
+					{ "x": bodyWidth / 2, "y": bodyHeight / 2 },
+					{ "x": -bodyWidth / 2, "y": bodyHeight / 2 }
+				],
+				"inertia": Infinity
+			} );
+
+			// Translate the body to keep the feet on the ground
+			Matter.Body.translate( actor.body, { "x": 0, "y": displacementY / 2 } );
+
+			// Update the position of the image container
+			actor.container.y = actor.body.position.y;
+			actor.container.x = actor.body.position.x;
+		}
 	}
 
 	function moveEnemies( delta ) {
