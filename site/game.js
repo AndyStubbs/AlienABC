@@ -3,6 +3,9 @@
 ( function () {
 
 	let game = {};
+
+	const FADE_IN_SPEED = 0.03;
+	const FADE_OUT_SPEED = 0.03;
 	const DEAD_BODY_FADE_START = 100;
 	const HURT_ANIMATION_DURATION = 10;
 	const IDLE_ANIMATION_START = 200;
@@ -99,7 +102,8 @@
 			"maxHealth": 100,
 			"stars": 0,
 			"letters": "___",
-			"item": null
+			"item": null,
+			"isActive": true
 		};
 		game.placedTiles = {};
 		game.markers = {};
@@ -118,11 +122,13 @@
 		game.container = new PIXI.Container();
 		game.container.scale.x = 1 / g.app.stage.scale.x;
 		game.container.scale.y = 1 / g.app.stage.scale.y;
+		game.container.alpha = 0;
 		g.app.stage.addChild( game.container );
 
 		// Create the HUD container.
 		createHud();
 		updateHud();
+		game.hud.alpha = 0;
 
 		// Create the physics world.
 		game.engine = Matter.Engine.create();
@@ -164,6 +170,9 @@
 		// Run the graphics step.
 		game.elapsed = 0;
 		g.app.ticker.add( step );
+
+		// Fade in the level.
+		g.app.ticker.add( fadeInStep );
 
 		// Setup the collider event
 		Matter.Events.on( game.engine, "collisionStart", collisionCheck );
@@ -869,14 +878,16 @@
 		// Run the items fade out
 		const fadeItemsToRemove = [];
 		game.fadeItems.forEach( fadeItem => {
-			fadeItem.animation.alpha -= 0.005;
+			fadeItem.animation.alpha -= 0.025;
 			if( fadeItem.animation.alpha <= 0 ) {
 				fadeItemsToRemove.push( fadeItem );
 			}
 		} );
 		fadeItemsToRemove.forEach( fadeItemToRemove => {
 			game.fadeItems.splice( game.fadeItems.indexOf( fadeItemToRemove ), 1 );
-			destroyItem( fadeItemToRemove );
+			if( fadeItemToRemove.type !== "player" ) {
+				destroyItem( fadeItemToRemove );
+			}
 		} );
 
 		// Update hurt animations
@@ -900,6 +911,15 @@
 		hurtItemsToRemove.forEach( hurtItemToRemove => {
 			game.hurtItems.splice( game.hurtItems.indexOf( hurtItemToRemove ), 1 );
 		} );
+	}
+
+	function fadeInStep( delta ) {
+		game.container.alpha = Math.min( 1, game.container.alpha + FADE_IN_SPEED * delta );
+		game.hud.alpha = Math.min( 1, game.hud.alpha + FADE_IN_SPEED * delta );
+
+		if( game.container.alpha === 1 && game.hud.alpha === 1 ) {
+			g.app.ticker.remove( fadeInStep );
+		}
 	}
 
 	function updatePosition( item ) {
@@ -1006,6 +1026,13 @@
 
 	function applyControls( itemPlayer, delta ) {
 
+		// Check if player is active
+		if( !game.player.isActive ) {
+			setAnimation( "stand", itemPlayer );
+			return;
+		}
+
+		// Check if player is dead or hurt
 		if( itemPlayer.isHit || itemPlayer.isDead ) {
 			setAnimation( "hurt", itemPlayer );
 			return;
@@ -1600,7 +1627,12 @@
 			trigger.name === "exit" &&
 			game.player.letters === game.word
 		) {
-			closeLevel( g.showTitleScreen );
+			setCenterMessage( "Level Complete" );
+			game.player.isActive = false;
+			game.fadeItems.push( actor );
+			setTimeout( () => {
+				closeLevel( g.showTitleScreen );
+			}, 2000 );
 		}
 	}
 
@@ -1614,8 +1646,8 @@
 	}
 
 	function fadeOutStep( delta ) {
-		game.container.alpha -= 0.01 * delta;
-		game.hud.alpha -= 0.01 * delta;
+		game.container.alpha -= FADE_OUT_SPEED * delta;
+		game.hud.alpha -= FADE_OUT_SPEED * delta;
 		if( game.container.alpha <= 0 ) {
 
 			// Remove the fade out ticker
