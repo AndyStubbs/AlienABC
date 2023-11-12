@@ -80,7 +80,6 @@
 		}
 
 		game.bodies = [];
-		game.groundBodies = [];
 		game.itemsMap = {};
 		game.items = [];
 		game.player = {
@@ -392,7 +391,6 @@
 		);
 		body.friction = 0;
 		game.bodies.push( body );
-		game.groundBodies.push( body );
 	}
 
 	function createItem( obj, container ) {
