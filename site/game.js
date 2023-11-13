@@ -257,11 +257,24 @@
 		game.hud.scale.y = 1 / g.app.stage.scale.y;
 		g.app.stage.addChild( game.hud );
 
+		// Create the hud
 		const hud = game.hud;
 		const healthBar = new PIXI.Container();
-		healthBar.x = 10;
-		healthBar.y = 10;
+		healthBar.x = 80;
+		healthBar.y = 15;
 		hud.addChild( healthBar );
+
+		// Create a menu button
+		const menuButton = new PIXI.Sprite(
+			g.uiSprites.textures[ "Controls/transparentLight/transparentLight31.png" ]
+		);
+		menuButton.x = 10;
+		menuButton.y = 10;
+		menuButton.interactive = true;
+		menuButton.on( "pointertap", () => {
+			closeLevel( g.showLevelSelectionScreen );
+		} );
+		hud.addChild( menuButton );
 
 		// Create the health bar background
 		const healthBarBg = new PIXI.Graphics();
@@ -397,6 +410,7 @@
 	function updateHud() {
 		const hud = game.hud;
 		hud.healthBarText.text = Math.round( game.player.health ) + "%";
+		hud.healthBarFill.x = 0;
 		hud.healthBarFill.width = 200 * game.player.health / game.player.maxHealth;
 		hud.starsText.text = game.player.stars;
 		hud.lettersText.text = game.player.letters;
