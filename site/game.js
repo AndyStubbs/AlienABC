@@ -1542,7 +1542,9 @@
 					game.hurtItems.push( item );
 				}
 				if( item.health <= 0 ) {
-					enemyDeath( item );
+					setTimeout( () => {
+						enemyDeath( item );
+					}, 100 );
 				}
 			}
 		}
