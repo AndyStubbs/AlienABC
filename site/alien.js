@@ -10,7 +10,69 @@ const g = {};
 
 	function init() {
 
+		g.selectedPlayer = "p1";
+		g.levelNames = [ "ART", "BED", "CAT", "DOG", "EYE", "FOX", "GEM", "HAT" ];
+		g.levels = [];
+
+		// Create the levels.
+		for( let i = 0; i < g.levelNames.length; i++ ) {
+			g.levels.push( {
+				"name": g.levelNames[ i ],
+				"locked": true,
+				"stars": 0
+			} );
+		}
+		g.levels[ 0 ].locked = false;
+
+		// Load user data from local storage.
+		g.userData = JSON.parse( localStorage.getItem( "alien" ) );
+		if( !g.userData ) {
+			g.userData = [];
+		}
+		for( let i = 0; i < g.levels.length; i++ ) {
+			if( g.userData.length > i ) {
+				g.levels[ i ].locked = false;
+				g.levels[ i ].stars = g.userData[ g.levels[ i ].name ];
+			} else {
+				g.userData.push( {
+					"name": g.levels[ i ].name,
+					"locked": true,
+					"stars": 0
+				} );
+			}
+		}
+
 		g.scale = { "aspect": 4 / 3, "x": 1, "y": 1, "width": 800, "height": 600 };
+
+		g.completeLevel = function completeLevel( name, stars ) {
+			const level = g.levels.findIndex( level => level.name === name );
+			if( level === -1 ) {
+				throw new Error( "Level not found: " + name );
+			}
+			stars = Math.max( g.levels[ level ].stars, stars );
+			g.levels[ level ].stars = stars;
+			g.userData[ level ].stars = stars;
+			if( g.userData[ level + 1 ] ) {
+				g.userData[ level + 1 ].locked = false;
+			}
+			localStorage.setItem( "alien", JSON.stringify( g.userData ) );
+		};
+
+		g.getStars = function getStars( name ) {
+			const level = g.levels.find( level => level.name === name );
+			if( !level ) {
+				return 0;
+			}
+			return level.stars;
+		};
+
+		g.getLevelLocked = function getLevelLocked( name ) {
+			const level = g.levels.find( level => level.name === name );
+			if( !level ) {
+				return true;
+			}
+			return level.locked;
+		}
 
 		// Create the PIXI application.
 		g.app = new PIXI.Application( {
@@ -25,11 +87,34 @@ const g = {};
 		g.initUI();
 		g.showLoadingScreen();
 
+		// Load the sounds
+		g.sounds = {
+			"jump": loadSound( "assets/sounds/jump.wav", 0.3 ),
+			"pickup": loadSound( "assets/sounds/pickup.wav", 0.6 ),
+			"letter": loadSound( "assets/sounds/letter.wav", 0.3, 1.5 ),
+			"open": loadSound( "assets/sounds/open-door.ogg", 0.6 ),
+			"win": loadSound( "assets/sounds/win.mp3", 0.6 ),
+			"explosion": loadSound( "assets/sounds/explosion.wav", 0.3 ),
+			"explosion2": loadSound( "assets/sounds/explosion2.wav", 0.3 ),
+			"enemyHit": loadSound( "assets/sounds/enemy-hit.wav", 0.6 ),
+			"playerHit": loadSound( "assets/sounds/player-hit.wav", 0.6 ),
+			"walk1": loadSound( "assets/sounds/walk1.wav", 0.25 ),
+			"walk2": loadSound( "assets/sounds/walk2.wav", 0.25 ),
+			"land": loadSound( "assets/sounds/walk2.wav", 0.25 ),
+			"throw": loadSound( "assets/sounds/throw.wav", 0.4 ),
+			"lose": loadSound( "assets/sounds/lose.ogg", 1 ),
+			"intro": loadSound( "assets/sounds/intro.ogg", 0.6 ),
+			"click": loadSound( "assets/sounds/click.wav", 0.2 ),
+		};
+
 		// Load the assets
 		( async () => {
 			const backgroundPromise = PIXI.Assets.load( "assets/backgrounds.json" );
 			const uiPromise = PIXI.Assets.load( "assets/ui.json" );
 			const spritesheetPromise = PIXI.Assets.load( "assets/spritesheet.json" );
+
+			// Create the title screen.
+			const titleScreenPromise = PIXI.Assets.load( "assets/images/alien_title.png" );
 
 			// Create the background.
 			g.backgrounds = await backgroundPromise;
@@ -37,6 +122,10 @@ const g = {};
 				g.backgrounds.textures[ "bg_purple.png" ], g.app.screen.width, g.app.screen.height
 			);
 			g.app.stage.addChildAt( g.background, 0 );
+
+			// Create the title screen container
+			g.titleScreenContainer = new PIXI.Container();
+			g.app.stage.addChild( g.titleScreenContainer );
 
 			// Resize the background.
 			resize();
@@ -47,9 +136,70 @@ const g = {};
 			// Create the spritesheet.
 			g.spritesheet = await spritesheetPromise;
 
+			// Create the title screen.
+			g.titleScreen = await titleScreenPromise;
+
 			// Show the title screen.
-			g.hideLoadingScreen( g.showTitleScreen );
+			//g.hideLoadingScreen( showTitleScreen );
+			g.hideLoadingScreen( g.showLevelSelectionScreen );
+
 		} )();
+	}
+
+	function showTitleScreen() {
+
+		const titleScreen = new PIXI.Sprite( g.titleScreen );
+		titleScreen.anchor.set( 0.5, 0.5 );
+		titleScreen.x = 400;
+		titleScreen.y = 300;
+		g.titleScreenContainer.addChild( titleScreen );
+
+		// Create play button that can be used to trigger the video
+		//const buttonContainer = new PIXI.Container();
+		const button = new PIXI.Graphics()
+			.beginFill( "#000000", 0.5 )
+			.drawRoundedRect( 0, 0, 100, 100, 10 )
+			.endFill()
+			.beginFill( "#ffffff" )
+			.moveTo( 36, 30 )
+			.lineTo( 36, 70 )
+			.lineTo( 70, 50 );
+
+		// Position the button
+		button.x = 350;
+		button.y = 400;
+
+		// Enable interactivity on the button
+		button.eventMode = "static";
+		button.cursor = "pointer";
+
+		// Add to the stage
+		g.titleScreenContainer.addChild( button );
+
+		// Listen for click events
+		button.on( "pointertap", function () {
+
+			button.destroy();
+			//titleScreen.destroy();
+
+			// Play the video
+			const video = PIXI.Texture.from( "assets/videos/alien_video.mp4" );
+
+			// Create the video sprite
+			const videoSprite = new PIXI.Sprite( video );
+			videoSprite.x = 0;
+			videoSprite.y = 0;
+			videoSprite.width = 800;
+			videoSprite.height = 600;
+			g.titleScreenContainer.addChild( videoSprite );
+
+			// Show level selection screen when the video ends
+			setTimeout( function () {
+				videoSprite.destroy();
+				g.titleScreenContainer.destroy();
+				g.showLevelSelectionScreen();
+			}, 12000 );
+		} );
 	}
 
 	function resize() {
@@ -67,7 +217,23 @@ const g = {};
 			g.background.width = g.app.screen.width / g.scale.x;
 			g.background.height = g.app.screen.height / g.scale.y;
 		}
+		if( g.titleScreenContainer ) {
+			let pos = g.app.stage.toLocal(
+				new PIXI.Point( g.app.screen.width / 2, g.app.screen.height / 2 )
+			);
+			g.titleScreenContainer.x = pos.x - 400;
+			g.titleScreenContainer.y = pos.y - 300;
+		}
 		g.resizeGame();
+	}
+
+	function loadSound( src, volume, rate ) {
+		if( rate === undefined ) {
+			rate = 1;
+		}
+		return new Howl( {
+			"src": [ src ], "autoplay": false, "loop": false, "volume": volume, "rate": rate
+		} );
 	}
 
 } )();

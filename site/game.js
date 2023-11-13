@@ -3,6 +3,7 @@
 ( function () {
 
 	let game = {};
+	let startingStars = 0;
 
 	const FADE_IN_SPEED = 0.03;
 	const FADE_OUT_SPEED = 0.03;
@@ -83,24 +84,30 @@
 		}
 		const response = await fetch( "assets/tiled/alien-" + name + ".json" );
 		const json = await response.json();
+
+		setTimeout( () => {
+			g.sounds.intro.play();
+		}, 300 );
+
 		game.level = json;
 		game.word = name;
 	};
 
-	g.startLevel = function ( ) {
+	g.startLevel = function ( stars ) {
 		if( !game.level || !game.tiles ) {
 			setTimeout( g.startLevel, 100 );
 			return;
 		}
 
+		startingStars = stars;
 		game.bodies = [];
 		game.bodiesMap = {};
 		game.items = [];
 		game.player = {
-			"id": "p1",
+			"id": g.selectedPlayer,
 			"health": 100,
 			"maxHealth": 100,
-			"stars": 0,
+			"stars": stars,
 			"letters": "___",
 			"item": null,
 			"isActive": true
@@ -1066,6 +1073,7 @@
 			// Apply the movement.
 			Matter.Body.translate( itemPlayer.body, { "x": speed, "y": 0 } );
 
+			//g.sounds.walk2.play();
 		} else if( keys.ArrowDown ) {
 			isDucking = true;
 		}
@@ -1085,6 +1093,7 @@
 
 				// Don't jump if player is going up
 				if( itemPlayer.body.velocity.y > -1 ) {
+					g.sounds.jump.play();
 					Matter.Body.applyForce(
 						itemPlayer.body, itemPlayer.body.position, { "x": 0, "y": -JUMP_FORCE }
 					);
@@ -1117,6 +1126,7 @@
 		if( isThrowing ) {
 			setAnimation( "throw", itemPlayer );
 		} else if( isWalking && itemPlayer.isGrounded ) {
+			//walkSound();
 			setAnimation( "walk", itemPlayer );
 		} else if( !itemPlayer.isGrounded ) {
 			setAnimation( "jump", itemPlayer );
@@ -1134,7 +1144,23 @@
 		}
 	}
 
+	function walkSound() {
+		if( !game.player.walkSoundTime || game.player.walkSoundTime + 15 < game.elapsed ) {
+			game.player.walkSoundTime = game.elapsed;
+
+			// Alternate between two sounds
+			if( !game.player.walkSound ) {
+				game.player.walkSound = 1;
+				g.sounds.walk1.play();
+			} else {
+				game.player.walkSound = 0;
+				g.sounds.walk2.play();
+			}
+		}
+	}
+
 	function throwStar( itemPlayer, isDucking ) {
+		g.sounds.throw.play();
 		let yVelocity;
 		if( isDucking ) {
 			yVelocity = -1.5 + itemPlayer.body.velocity.y / 2;
@@ -1335,8 +1361,14 @@
 			// Check for an actor hitting the ground
 			if( a.type === "actor" && b.type === "ground" && penetration.y < 0 ) {
 				game.bodiesMap[ pair.bodyA.id ].isGrounded = true;
+				if( game.bodiesMap[ pair.bodyA.id ].type === "player" && game.elapsed > 10 ) {
+					g.sounds.land.play();
+				}
 			} else if ( a.type === "ground" && b.type === "actor" && penetration.y > 0) {
 				game.bodiesMap[ pair.bodyB.id ].isGrounded = true;
+				if( game.bodiesMap[ pair.bodyB.id ].type === "player"  && game.elapsed > 10 ) {
+					g.sounds.land.play();
+				}
 			}
 
 			// Check for a player hitting a pickup item.
@@ -1390,6 +1422,7 @@
 			return;
 		}
 		if( itemPlayer.hurtStartTime + HURT_ANIMATION_DURATION < game.elapsed ) {
+			g.sounds.playerHit.play();
 			game.player.health -= enemy.damage;
 			updateHud();
 			itemPlayer.hurtStartTime = game.elapsed;
@@ -1433,9 +1466,15 @@
 		Matter.Body.setInertia( itemPlayer.body, 100 );
 		Matter.Body.setAngularVelocity( itemPlayer.body, 0.15 );
 
+		setTimeout( () => {
+			g.sounds.lose.play();
+		}, 150 );
+
 		// Go back to title screen
 		setTimeout( () => {
-			closeLevel( g.startLevel );
+			closeLevel( () => {
+				g.startLevel( startingStars );
+			} );
 		}, 1500 );
 	}
 
@@ -1484,6 +1523,8 @@
 				"y": projectile.body.position.y + damageRadius
 			}
 		} );
+
+		let enemyHit = false;
 		for( let i = 0; i < damageArea.length; i++ ) {
 			const body = damageArea[ i ];
 			const item = game.bodiesMap[ body.id ];
@@ -1496,6 +1537,7 @@
 				console.log( "damage: " + damage );
 				item.health -= damage;
 				if( damage > 0 ) {
+					enemyHit = true;
 					item.hurtStartTime = game.elapsed;
 					game.hurtItems.push( item );
 				}
@@ -1503,6 +1545,12 @@
 					enemyDeath( item );
 				}
 			}
+		}
+
+		if( enemyHit ) {
+			g.sounds.explosion2.play();
+		} else {
+			g.sounds.explosion.play();
 		}
 	}
 
@@ -1583,6 +1631,7 @@
 
 		// Update the game stats
 		if( pickup.data.isLetter ) {
+			g.sounds.letter.play();
 			const letter = pickup.text;
 			const index = game.word.indexOf( letter );
 			game.player.letters = game.player.letters.substring( 0, index ) + letter +
@@ -1590,16 +1639,22 @@
 			
 			// Check if the word is complete
 			if( game.player.letters === game.word ) {
-				openExit();
+				setTimeout( () => {
+					openExit();
+				}, 500 );
 			}
 			updateHud();
 		} else if( pickup.isStar ) {
+			g.sounds.pickup.play();
 			game.player.stars += 1;
 			updateHud();
 		}
 	}
 
 	function openExit() {
+
+		game.exitOpen = true;
+		g.sounds.open.play();
 
 		// Find the tiles in the same location as the exit and set them to the alternate sprite.
 		const exitImage = game.markers[ "exit-image" ];
@@ -1625,13 +1680,17 @@
 		if(
 			actor.type === "player" &&
 			trigger.name === "exit" &&
-			game.player.letters === game.word
+			game.exitOpen
 		) {
+			setTimeout( () => {
+				g.sounds.win.play();
+			}, 500 );
 			setCenterMessage( "Level Complete" );
 			game.player.isActive = false;
 			game.fadeItems.push( actor );
+			g.completeLevel( game.word, game.player.stars );
 			setTimeout( () => {
-				closeLevel( g.showTitleScreen );
+				closeLevel( g.showLevelSelectionScreen );
 			}, 2000 );
 		}
 	}

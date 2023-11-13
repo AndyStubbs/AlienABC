@@ -3,7 +3,8 @@
 ( function () {
 	const ui = {
 		"fadeItems": [],
-		"action": () => {}
+		"action": () => {},
+		"buttons": [],
 	};
 
 	g.initUI = function () {
@@ -31,9 +32,9 @@
 		g.app.ticker.add( runFadeOut );
 	};
 
-	g.showTitleScreen = function () {
+	g.showLevelSelectionScreen = function () {
 		if( !ui.titleScreen ) {
-			createTitleScreen();
+			createLevelSelectionScreen();
 		}
 		ui.buttonsActive = true;
 		ui.titleScreen.container.visible = true;
@@ -41,6 +42,9 @@
 		ui.fadeItems = [ ui.titleScreen.container ];
 		ui.action = () => {};
 		g.app.ticker.add( runFadeIn );
+
+		// Unlock the levels.
+		unlockLevels();
 	};
 
 	function createLoadingScreen() {
@@ -68,7 +72,7 @@
 		ui.container.addChild( ui.loadingScreen.container );
 	}
 
-	function createTitleScreen() {
+	function createLevelSelectionScreen() {
 		ui.titleScreen = {};
 		ui.titleScreen.container = new PIXI.Container();
 		ui.titleScreen.container.visible = false;
@@ -98,7 +102,7 @@
 		ui.titleScreen.levelSelectionPanel = new PIXI.Container();
 		ui.titleScreen.container.addChild( ui.titleScreen.levelSelectionPanel );
 		const panelWidth = 600;
-		const panelHeight = 400;
+		const panelHeight = 350;
 		const panel = new PIXI.Graphics();
 		panel.beginFill( "#000000", 0.5 );
 		panel.drawRect( 0, 0, panelWidth, panelHeight );
@@ -107,33 +111,13 @@
 			new PIXI.Point( g.app.screen.width / 2, g.app.screen.height / 2 )
 		);
 		panel.x = pos.x - panelWidth / 2;
-		panel.y = pos.y - panelHeight / 2;
+		panel.y = pos.y - panelHeight / 2 + 40;
 		ui.titleScreen.levelSelectionPanel.addChild( panel );
 
-		// Create the level selection text.
-		const levelSelectionText = new PIXI.Text( "Select a level", {
-			"fontFamily": "Arial",
-			"fontSize": 36,
-			"fill": "#ffffff",
-			"stroke": "#000000",
-			"strokeThickness": 3,
-			"dropShadow": true,
-			"dropShadowColor": "#000000",
-			"dropShadowBlur": 4,
-			"align": "center"
-		} );
-		panel.addChild( levelSelectionText );
-		levelSelectionText.anchor.set( 0.5, 0.5 );
-		levelSelectionText.x = panelWidth / 2;
-		levelSelectionText.y = 35;
-
 		// Create the level buttons.
-		const buttons = [ "ART", "BED", "CAT", "DOG", "EYE", "FOX", "GEM", "HAT", //"IMP", "JET", 
-			//"KID", "LAM", "MOB", "NUN", "OWL", "PIG", "QUE", "RAT", "SUN", "TUB", "URN", "VAN",
-			//"WAX", "XEN", "YAK", "ZOO" 
-		];
+		const buttons = g.levelNames.slice( 0, 9 );
 		let x = 100;
-		let y = 125;
+		let y = 90;
 		buttons.forEach( button => {
 			const levelButton = createButton( button, x, y, () => {
 				g.hideTitleScreen( () => {
@@ -147,21 +131,85 @@
 				y += 150;
 			}
 		} );
+
+		// Create the player selection animation.
+		if( !g.selectedPlayer ) {
+			g.selectedPlayer = "p1";
+		}
+		ui.p1Button = createPlayerSelectionButton( "p1", -100 );
+		ui.p2Button = createPlayerSelectionButton( "p2", 0 );
+		ui.p3Button = createPlayerSelectionButton( "p3", 100 );
+	}
+
+	function createPlayerSelectionButton( player, y ) {
+
+		const panel = g.selectedPlayer === player ? "green_panel.png" : "grey_panel.png";
+
+		// Create the button
+		const button = new PIXI.Sprite( g.uiSprites.textures[ panel ] );
+		button.anchor.set( 0, 0 );
+		let pos = g.app.stage.toLocal(
+			new PIXI.Point( 0, g.app.screen.height / 2 )
+		);
+		button.x = pos.x + 20;
+		button.y = pos.y + y;
+		button.tint = "#454545";
+
+		// Create the animation
+		const frames = [];
+		for( let i = 1; i <= 10; i++ ) {
+			frames.push( g.spritesheet.textures[ player + "_front.png" ] );
+		}
+		frames.push( g.spritesheet.textures[ player + "_blink.png" ] );
+		const playerAnimation = new PIXI.AnimatedSprite( frames );
+		playerAnimation.anchor.set( 0.5, 0.5 );
+		playerAnimation.x = 49;
+		playerAnimation.y = 48;
+		playerAnimation.animationSpeed = 0.1;
+		setTimeout( () => {
+			playerAnimation.play();
+		}, Math.random() * 2000 );
+		button.addChild( playerAnimation );
+
+		// Create the player selection
+		ui.titleScreen.container.addChild( button );
+
+		// Create the button
+		button.interactive = true;
+		button.on( "pointerover", () => {
+			button.tint = "#565656";
+		} );
+		button.on( "pointerout", () => {
+			button.tint = "#454545";
+		} );
+		button.on( "pointerdown", () => {
+			g.sounds.click.play();
+			g.selectedPlayer = player;
+			ui.p1Button.texture = g.uiSprites.textures[ "grey_panel.png" ];
+			ui.p2Button.texture = g.uiSprites.textures[ "grey_panel.png" ];
+			ui.p3Button.texture = g.uiSprites.textures[ "grey_panel.png" ];
+			button.texture = g.uiSprites.textures[ "green_panel.png" ];
+		} );
+
+		return button;
 	}
 
 	function createButton( text, x, y ) {
+
 		const button = new PIXI.Sprite( g.uiSprites.textures[ "blue_panel.png" ] );
 		button.anchor.set( 0.5, 0.5 );
 		button.x = x;
 		button.y = y;
 		button.interactive = true;
-		button.on( "pointerover", () => {
-			button.tint = "#aaaaaa";
-		} );
-		button.on( "pointerout", () => {
-			button.tint = "#ffffff";
-		} );
-		button.on( "pointerdown", () => startLevel( text ) );
+
+		// Create the background image
+		const background = new PIXI.Sprite( g.uiSprites.textures[ text.toLowerCase() + ".png" ] );
+		background.anchor.set( 0.5, 0.5 );
+		background.scale.set( 0.65, 0.65 );
+		background.x = 0;
+		background.y = 0;
+		button.addChild( background );
+		
 		const buttonText = new PIXI.Text( text, {
 			"fontFamily": "Arial",
 			"fontSize": 24,
@@ -177,7 +225,43 @@
 		buttonText.x = 0;
 		buttonText.y = 70;
 		button.addChild( buttonText );
+
+		// Create the lock image
+		const lock = new PIXI.Sprite( g.spritesheet.textures[ "lock_yellow.png" ] );
+		lock.anchor.set( 0.5, 0.5 );
+		lock.x = 0;
+		lock.y = 0;
+		//lock.visible = false;
+		button.addChild( lock );
+		button.lockImage = lock;
+
+		ui.buttons.push( button );
+
+		button.levelName = text;
+
 		return button;
+	}
+
+	function unlockLevels() {
+		ui.buttons.forEach( button => {
+			if( !g.getLevelLocked( button.levelName ) ) {
+				unlockLevel( button );
+			}
+		} );
+	}
+
+	function unlockLevel( button ) {
+		button.on( "pointerover", () => {
+			button.tint = "#aaaaaa";
+		} );
+		button.on( "pointerout", () => {
+			button.tint = "#ffffff";
+		} );
+		button.on( "pointerdown", () => {
+			button.tint = "#ffffff";
+			startLevel( button.levelName );
+		} );
+		button.lockImage.visible = false;
 	}
 
 	function runFadeOut( delta ) {
@@ -226,11 +310,13 @@
 		if( !ui.buttonsActive ) {
 			return;
 		}
+		g.sounds.click.play();
 		ui.buttonsActive = false;
 		g.loadLevel( name );
 		ui.fadeItems = [ ui.titleScreen.container ];
 		ui.action = () => {
-			g.startLevel();
+			const stars = g.getStars( name );
+			g.startLevel( stars );
 		};
 		g.app.ticker.remove( runFadeIn );
 		g.app.ticker.remove( runLoadingScreen );
