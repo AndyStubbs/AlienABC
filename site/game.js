@@ -407,14 +407,7 @@
 
 		// If the controls already exist, update their position and return
 		if( game.onscreenControls ) {
-			game.onscreenControls.scale.x = 1 / g.app.stage.scale.x;
-			game.onscreenControls.scale.y = 1 / g.app.stage.scale.y;
-			game.onscreenControls.leftButton.y = g.app.screen.height - 143;
-			game.onscreenControls.rightButton.y = g.app.screen.height - 143;
-			game.onscreenControls.jumpButton.y = g.app.screen.height - 204;
-			game.onscreenControls.duckButton.y = g.app.screen.height - 83;
-			game.onscreenControls.throwButton.x = g.app.screen.width - 110;
-			game.onscreenControls.throwButton.y = g.app.screen.height - 100;
+			setOnscreenControlsPositions();
 			return;
 		}
 
@@ -423,110 +416,116 @@
 
 		// Create the onscreen controls container
 		game.onscreenControls = new PIXI.Container();
-		game.onscreenControls.scale.x = 1 / g.app.stage.scale.x;
-		game.onscreenControls.scale.y = 1 / g.app.stage.scale.y;
 		game.onscreenControls.visible = false;
 		g.app.stage.addChild( game.onscreenControls );
 
-		// Create the left button
-		const leftButton = new PIXI.Sprite(
-			g.uiSprites.textures[ "Controls/transparentLight/transparentLight22.png" ]
-		);
-		leftButton.x = 10;
-		leftButton.y = g.app.screen.height - 143;
-		leftButton.interactive = true;
-		leftButton.on( "pointerdown", () => {
-			game.keys[ "ArrowLeft" ] = true;
-			leftButton.tint = "#555555";
-		} );
-		leftButton.on( "pointerup", () => {
-			game.keys[ "ArrowLeft" ] = false;
-			leftButton.tint = "#ffffff";
-		} );
-		game.onscreenControls.addChild( leftButton );
-		game.onscreenControls.leftButton = leftButton;
+		// Track the touch points
+		const touchPoints = [];
 
-		// Create the right button
-		const rightButton = new PIXI.Sprite(
-			g.uiSprites.textures[ "Controls/transparentLight/transparentLight23.png" ]
-		);
-		rightButton.x = 131;
-		rightButton.y = g.app.screen.height - 143;
-		rightButton.interactive = true;
-		rightButton.on( "pointerdown", () => {
-			game.keys[ "ArrowRight" ] = true;
-			rightButton.tint = "#555555";
-		} );
-		rightButton.on( "pointerup", () => {
-			game.keys[ "ArrowRight" ] = false;
-			rightButton.tint = "#ffffff";
-		} );
-		game.onscreenControls.addChild( rightButton );
-		game.onscreenControls.rightButton = rightButton;
+		// Define the button controls
+		const buttons = [
+			[ "Controls/transparentLight/transparentLight22.png", "ArrowLeft", "leftButton" ],
+			[ "Controls/transparentLight/transparentLight23.png", "ArrowRight", "rightButton" ],
+			[ "Controls/transparentLight/transparentLight25.png", "ArrowDown", "duckButton" ],
+			[ "Controls/transparentLight/transparentLight24.png", "ArrowUp", "jumpButton" ],
+			[ "Controls/transparentLight/transparentLight26.png", " ", "throwButton" ]
+		];
 
-		// Create the jump button
-		const jumpButton = new PIXI.Sprite(
-			g.uiSprites.textures[ "Controls/transparentLight/transparentLight24.png" ]
-		);
-		jumpButton.x = 71;
-		jumpButton.y = g.app.screen.height - 204;
-		jumpButton.interactive = true;
-		jumpButton.on( "pointerdown", () => {
-			game.keys[ "ArrowUp" ] = true;
-			jumpButton.tint = "#555555";
+		// Create the buttons
+		buttons.forEach( buttonData => {
+			const sprite = new PIXI.Sprite( g.uiSprites.textures[ buttonData[ 0 ] ] );
+			sprite.interactive = true;
+			sprite.on( "pointerdown", ( e ) => {
+				touchPoints.push( {
+					"pointer_id": e.pointerId,
+					"x": e.global.x,
+					"y": e.global.y,
+					"keyname": buttonData[ 1 ],
+					"buttonname": buttonData[ 2 ]
+				} );
+				game.keys[ buttonData[ 1 ] ] = true;
+				sprite.tint = "#555555";
+			} );
+			sprite.on( "pointerup", ( e ) => {
+				const index = touchPoints.findIndex( touchPoint => {
+					return touchPoint.pointer_id === e.pointerId;
+				} );
+				touchPoints.splice( index, 1 );
+				game.keys[ buttonData[ 1 ] ] = false;
+				sprite.tint = "#ffffff";
+			} );
+			game.onscreenControls.addChild( sprite );
+			game.onscreenControls[ buttonData[ 2 ] ] = sprite;
 		} );
-		jumpButton.on( "pointerup", () => {
-			game.keys[ "ArrowUp" ] = false;
-			jumpButton.tint = "#ffffff";
-		} );
-		game.onscreenControls.addChild( jumpButton );
-		game.onscreenControls.jumpButton = jumpButton;
-
-		// Create the duck button
-		const duckButton = new PIXI.Sprite(
-			g.uiSprites.textures[ "Controls/transparentLight/transparentLight25.png" ]
-		);
-		duckButton.x = 71;
-		duckButton.y = g.app.screen.height - 83;
-		duckButton.interactive = true;
-		duckButton.on( "pointerdown", () => {
-			game.keys[ "ArrowDown" ] = true;
-			duckButton.tint = "#555555";
-		} );
-		duckButton.on( "pointerup", () => {
-			game.keys[ "ArrowDown" ] = false;
-			duckButton.tint = "#ffffff";
-		} );
-		game.onscreenControls.addChild( duckButton );
-		game.onscreenControls.duckButton = duckButton;
-
-		// Create the throw button
-		const throwButton = new PIXI.Sprite(
-			g.uiSprites.textures[ "Controls/transparentLight/transparentLight26.png" ]
-		);
-		throwButton.x = g.app.screen.width - 110;
-		throwButton.y = g.app.screen.height - 100;
-		throwButton.interactive = true;
-		throwButton.on( "pointerdown", () => {
-			game.keys[ " " ] = true;
-			throwButton.tint = "#555555";
-		} );
-		throwButton.on( "pointerup", () => {
-			game.keys[ " " ] = false;
-			throwButton.tint = "#ffffff";
-		} );
-		game.onscreenControls.addChild( throwButton );
-		game.onscreenControls.throwButton = throwButton;
 
 		// Clear the keys when the user stops touching the screen
-		g.app.stage.on( "pointerup", () => {
-			game.keys = {};
-			leftButton.tint = "#ffffff";
-			rightButton.tint = "#ffffff";
-			jumpButton.tint = "#ffffff";
-			duckButton.tint = "#ffffff";
-			throwButton.tint = "#ffffff";
+		g.app.stage.on( "pointerup", ( e ) => {
+
+			// Remove the touch point
+			const index = touchPoints.findIndex( touchPoint => {
+				return touchPoint.pointer_id === e.pointerId;
+			} );
+
+			if( index === -1 ) {
+				return;
+			}
+			const touch = touchPoints[ index ];
+			touchPoints.splice( index, 1 );
+
+			// Update the keypress data
+			game.keys[ touch.keyname ] = false;
+			game.onscreenControls[ touch.buttonname ].tint = "#ffffff";
 		} );
+
+		// Set the positions of the onscreen controls
+		setOnscreenControlsPositions();
+	}
+
+	function setOnscreenControlsPositions() {
+		let buttonSize = 100;
+		let buttonGap = 10;
+		let scale = 1;
+
+		if( g.app.screen.width < 800 ) {
+			buttonSize = 50;
+			buttonGap = 5;
+			scale = 0.5;
+		}
+
+		game.onscreenControls.scale.x = 1 / g.app.stage.scale.x;
+		game.onscreenControls.scale.y = 1 / g.app.stage.scale.y;
+		game.onscreenControls.x = 0;
+		game.onscreenControls.y = 0;
+
+		// Left Button
+		game.onscreenControls.leftButton.width = buttonSize;
+		game.onscreenControls.leftButton.height = buttonSize;
+		game.onscreenControls.leftButton.x = buttonGap;
+		game.onscreenControls.leftButton.y = g.app.screen.height - buttonSize - buttonGap;
+
+		// Right Button
+		game.onscreenControls.rightButton.width = buttonSize;
+		game.onscreenControls.rightButton.height = buttonSize;
+		game.onscreenControls.rightButton.x = buttonSize + buttonGap * 2;
+		game.onscreenControls.rightButton.y = g.app.screen.height - buttonSize - buttonGap;
+
+		// Duck Button
+		game.onscreenControls.duckButton.width = buttonSize;
+		game.onscreenControls.duckButton.height = buttonSize;
+		game.onscreenControls.duckButton.x = ( buttonSize + buttonGap ) * 2 + buttonGap;
+		game.onscreenControls.duckButton.y = g.app.screen.height - buttonSize - buttonGap;
+
+		// Jump Button
+		game.onscreenControls.jumpButton.width = buttonSize;
+		game.onscreenControls.jumpButton.height = buttonSize;
+		game.onscreenControls.jumpButton.x = g.app.screen.width - ( buttonSize + buttonGap ) * 2 - buttonGap;
+		game.onscreenControls.jumpButton.y = g.app.screen.height - buttonSize - buttonGap;
+
+		// Throw Button
+		game.onscreenControls.throwButton.width = buttonSize;
+		game.onscreenControls.throwButton.height = buttonSize;
+		game.onscreenControls.throwButton.x = g.app.screen.width - buttonSize - buttonGap;
+		game.onscreenControls.throwButton.y = g.app.screen.height - buttonSize - buttonGap;
 	}
 
 	function showControls() {
@@ -1265,16 +1264,9 @@
 
 					// Apply the jump force
 					let jumpForce = -JUMP_FORCE / delta;
-					console.log( "Delta: " + delta );
-					console.log( "Jumping: " + jumpForce );
 					Matter.Body.applyForce(
 						itemPlayer.body, itemPlayer.body.position, { "x": 0, "y": jumpForce }
 					);
-					setTimeout( () => {
-						// QUICK FIX: Player is not jumping high enough on certain devices
-						// Log the player's y velocity
-						console.log( itemPlayer.body.velocity.y );
-					}, 100 );
 				}
 				itemPlayer.isGrounded = false;
 			}

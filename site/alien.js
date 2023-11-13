@@ -8,6 +8,9 @@ const g = {};
 
 	const main = {};
 
+	// Disable the context menu
+	document.addEventListener( "contextmenu", event => event.preventDefault() );
+
 	window.addEventListener( "DOMContentLoaded", init );
 
 	function init() {
@@ -114,6 +117,15 @@ const g = {};
 	}
 
 	function initSounds() {
+
+		if( isMobile() ) {
+			openFullscreen( document.body );
+			if( "orientation" in screen ) {
+				screen.orientation.lock( "landscape-primary" )
+					.then( () =>{} )
+					.catch( () =>{} );
+			}
+		}
 
 		// Load the sounds
 		g.sounds = {
@@ -243,6 +255,31 @@ const g = {};
 		return new Howl( {
 			"src": [ src ], "autoplay": false, "loop": false, "volume": volume, "rate": rate
 		} );
+	}
+
+	function isMobile() {
+		if (
+			navigator.userAgentData !== undefined &&
+			navigator.userAgentData.mobile !== undefined ) {
+			return navigator.userAgentData.mobile === true;
+		}
+		if (
+			/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
+			.test( navigator.userAgent )
+		) {
+			return true;
+		}
+		return false;
+	}
+
+	function openFullscreen( elem ) {
+		if( elem.requestFullscreen ) {
+			elem.requestFullscreen();
+		} else if( elem.webkitRequestFullscreen ) {
+			elem.webkitRequestFullscreen();
+		} else if( elem.msRequestFullscreen ) {
+			elem.msRequestFullscreen();
+		}
 	}
 
 } )();
