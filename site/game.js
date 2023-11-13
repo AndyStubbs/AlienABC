@@ -104,7 +104,7 @@
 		game.bodiesMap = {};
 		game.items = [];
 		game.player = {
-			"id": g.selectedPlayer,
+			"id": g.userData.player,
 			"health": 100,
 			"maxHealth": 100,
 			"stars": stars,

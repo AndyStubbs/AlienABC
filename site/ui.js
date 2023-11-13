@@ -167,9 +167,6 @@
 		} );
 
 		// Create the player selection animation.
-		if( !g.selectedPlayer ) {
-			g.selectedPlayer = "p1";
-		}
 		ui.p1Button = createPlayerSelectionButton( "p1", -100 );
 		ui.p2Button = createPlayerSelectionButton( "p2", 0 );
 		ui.p3Button = createPlayerSelectionButton( "p3", 100 );
@@ -177,7 +174,7 @@
 
 	function createPlayerSelectionButton( player, y ) {
 
-		const panel = g.selectedPlayer === player ? "green_panel.png" : "grey_panel.png";
+		const panel = g.userData.player === player ? "green_panel.png" : "grey_panel.png";
 
 		// Create the button
 		const button = new PIXI.Sprite( g.uiSprites.textures[ panel ] );
@@ -218,7 +215,8 @@
 		} );
 		button.on( "pointerdown", () => {
 			g.sounds.click.play();
-			g.selectedPlayer = player;
+			g.userData.player = player;
+			g.saveUserData();
 			ui.p1Button.texture = g.uiSprites.textures[ "grey_panel.png" ];
 			ui.p2Button.texture = g.uiSprites.textures[ "grey_panel.png" ];
 			ui.p3Button.texture = g.uiSprites.textures[ "grey_panel.png" ];
@@ -278,7 +276,7 @@
 
 	function unlockLevels() {
 		ui.buttons.forEach( button => {
-			if( !g.getLevelLocked( button.levelName ) ) {
+			if( !g.userData[ button.levelName ].locked ) {
 				unlockLevel( button );
 			}
 		} );
@@ -349,7 +347,7 @@
 		g.loadLevel( name );
 		ui.fadeItems = [ ui.titleScreen.container ];
 		ui.action = () => {
-			const stars = g.getStars( name );
+			const stars = g.userData[ name ].stars;
 			g.startLevel( stars );
 		};
 		g.app.ticker.remove( runFadeIn );

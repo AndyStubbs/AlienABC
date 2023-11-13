@@ -10,68 +10,51 @@ const g = {};
 
 	function init() {
 
-		g.selectedPlayer = "p1";
 		g.levelNames = [ "ART", "BED", "CAT", "DOG", "EYE", "FOX", "GEM", "HAT" ];
-		g.levels = [];
-
-		// Create the levels.
-		for( let i = 0; i < g.levelNames.length; i++ ) {
-			g.levels.push( {
-				"name": g.levelNames[ i ],
-				"locked": true,
-				"stars": 0
-			} );
-		}
-		g.levels[ 0 ].locked = false;
 
 		// Load user data from local storage.
 		g.userData = JSON.parse( localStorage.getItem( "alien" ) );
 		if( !g.userData ) {
-			g.userData = [];
+			g.userData = {
+				"player": "p1",
+			};
 		}
-		for( let i = 0; i < g.levels.length; i++ ) {
-			if( g.userData.length > i ) {
-				g.levels[ i ].locked = false;
-				g.levels[ i ].stars = g.userData[ g.levels[ i ].name ];
-			} else {
-				g.userData.push( {
-					"name": g.levels[ i ].name,
+		let lastLevel = null;
+		for( let i = 0; i < g.levelNames.length; i++ ) {
+			if( !g.userData[ g.levelNames[ i ] ] ) {
+				g.userData[ g.levelNames[ i ] ] = {
 					"locked": true,
-					"stars": 0
-				} );
+					"stars": 0,
+					"nextLevel": null
+				};
+				if( lastLevel ) {
+					g.userData[ lastLevel].nextLevel = g.levelNames[ i ];
+				}
 			}
+			lastLevel = g.levelNames[ i ];
 		}
 
+		// First level should always be unlocked.
+		g.userData[ g.levelNames[ 0 ] ].locked = false;
+
+		// Set up the screen scale.
 		g.scale = { "aspect": 4 / 3, "x": 1, "y": 1, "width": 800, "height": 600 };
 
+		// Set up the game state.
 		g.completeLevel = function completeLevel( name, stars ) {
-			const level = g.levels.findIndex( level => level.name === name );
-			if( level === -1 ) {
-				throw new Error( "Level not found: " + name );
+			const level = g.userData[ name ];
+			const nextLevel = g.userData[ level.nextLevel ];
+
+			// Unlock the next level.
+			if( nextLevel ) {
+				nextLevel.locked = false;
+				nextLevel.stars = Math.max( nextLevel.stars, stars );
 			}
-			stars = Math.max( g.levels[ level ].stars, stars );
-			g.levels[ level ].stars = stars;
-			g.userData[ level ].stars = stars;
-			if( g.userData[ level + 1 ] ) {
-				g.userData[ level + 1 ].locked = false;
-			}
+			g.saveUserData();
+		};
+
+		g.saveUserData = function saveUserData() {
 			localStorage.setItem( "alien", JSON.stringify( g.userData ) );
-		};
-
-		g.getStars = function getStars( name ) {
-			const level = g.levels.find( level => level.name === name );
-			if( !level ) {
-				return 0;
-			}
-			return level.stars;
-		};
-
-		g.getLevelLocked = function getLevelLocked( name ) {
-			const level = g.levels.find( level => level.name === name );
-			if( !level ) {
-				return true;
-			}
-			return level.locked;
 		}
 
 		// Create the PIXI application.
