@@ -16,7 +16,7 @@
 	const JUMP_FORCE = 0.125;
 	const HIT_FORCE = 0.05;
 	const DEBUG = false;
-	const SHOW_FPS = true;
+	const SHOW_FPS = false;
 	const MIDDLE_LAYER = "Middle 1";
 	const enemies = {
 		"Slime": {
@@ -194,6 +194,7 @@
 			game.container.scale.y = 1 / g.app.stage.scale.y;
 			createHud();
 			updateHud();
+			centerCamera();
 			moveCamera();
 		}
 	};
@@ -1101,9 +1102,6 @@
 		// Apply Jumping
 		if( keys.ArrowUp ) {
 			if( itemPlayer.isGrounded ) {
-				console.log( "falling - " + itemPlayer.body.velocity.y );
-			}
-			if( itemPlayer.isGrounded ) {
 
 				// Don't jump if player is going up
 				if( itemPlayer.body.velocity.y > -1 ) {
@@ -1336,6 +1334,14 @@
 		}
 	}
 
+	function centerCamera() {
+		const player = game.player.item;
+
+		// Convert the coordinates to screen space.
+		game.container.x = -player.container.x / g.app.stage.scale.x + g.app.screen.width / g.app.stage.scale.x * 0.5;
+		game.container.y = -player.container.y / g.app.stage.scale.y + g.app.screen.height / g.app.stage.scale.y * 0.5;
+	}
+
 	function setupInputs() {
 		const keys = {};
 		document.addEventListener( "keydown", keydown );
@@ -1368,8 +1374,6 @@
 			const pair = pairs[ i ];
 			const a = pair.bodyA.customData;
 			const b = pair.bodyB.customData;
-
-			console.log( a.type, b.type );
 			const penetration = pair.collision.penetration;
 
 			// Check for an actor hitting the ground
@@ -1548,7 +1552,6 @@
 					Math.pow( projectile.body.position.y - body.position.y, 2 )
 				);
 				const damage = Math.max( 0, 100 * ( damageRadius - distance ) / damageRadius );
-				console.log( "damage: " + damage );
 				item.health -= damage;
 				if( damage > 0 ) {
 					enemyHit = true;

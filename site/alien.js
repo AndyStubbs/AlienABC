@@ -199,6 +199,8 @@ const g = {};
 		main.videoSprite.texture.baseTexture.resource.source.pause()
 		main.videoSprite.destroy();
 		main.titleScreenContainer.destroy();
+		main.titleScreenContainer = null;
+		main.videoSprite = null;
 		g.showLevelSelectionScreen();
 	}
 
