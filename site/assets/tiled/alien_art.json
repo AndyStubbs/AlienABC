@@ -412,7 +412,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "source":"alien-tiles.tsx"
+         "source":"alien_tiles.tsx"
         }],
  "tilewidth":70,
  "type":"map",

@@ -7,7 +7,7 @@
  }
  if(typeof module === 'object' && module && module.exports) {
   module.exports = data;
- }})("alien-map",
+ }})("alien_map",
 { "compressionlevel":-1,
  "height":20,
  "infinite":false,

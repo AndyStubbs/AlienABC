@@ -120,12 +120,12 @@ const g = {};
 			"jump": loadSound( "assets/sounds/jump.wav", 0.3 ),
 			"pickup": loadSound( "assets/sounds/pickup.wav", 0.6 ),
 			"letter": loadSound( "assets/sounds/letter.wav", 0.3, 1.5 ),
-			"open": loadSound( "assets/sounds/open-door.ogg", 0.6 ),
+			"open": loadSound( "assets/sounds/open_door.ogg", 0.6 ),
 			"win": loadSound( "assets/sounds/win.mp3", 0.6 ),
 			"explosion": loadSound( "assets/sounds/explosion.wav", 0.3 ),
 			"explosion2": loadSound( "assets/sounds/explosion2.wav", 0.3 ),
-			"enemyHit": loadSound( "assets/sounds/enemy-hit.wav", 0.6 ),
-			"playerHit": loadSound( "assets/sounds/player-hit.wav", 0.6 ),
+			"enemyHit": loadSound( "assets/sounds/enemy_hit.wav", 0.6 ),
+			"playerHit": loadSound( "assets/sounds/player_hit.wav", 0.6 ),
 			"walk1": loadSound( "assets/sounds/walk1.wav", 0.25 ),
 			"walk2": loadSound( "assets/sounds/walk2.wav", 0.25 ),
 			"land": loadSound( "assets/sounds/walk2.wav", 0.25 ),
@@ -184,7 +184,10 @@ const g = {};
 			main.titleScreenContainer.addChild( main.videoSprite );
 
 			// Show level selection screen when the video ends
-			main.videoTimeout = setTimeout( stopVideoAndShowLevelSelectionScreen, 12000 );
+			main.videoSprite.texture.baseTexture.resource.source.addEventListener( "ended",
+				function () {
+					stopVideoAndShowLevelSelectionScreen();
+				} );
 
 			setTimeout( function () {
 				document.body.addEventListener( "click", function () {
@@ -196,6 +199,9 @@ const g = {};
 	}
 
 	function stopVideoAndShowLevelSelectionScreen() {
+		if( !main.videoSprite ) {
+			return;
+		}
 		main.videoSprite.texture.baseTexture.resource.source.pause()
 		main.videoSprite.destroy();
 		main.titleScreenContainer.destroy();

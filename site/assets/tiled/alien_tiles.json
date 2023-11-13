@@ -6,7 +6,7 @@
      "width":1
     },
  "margin":0,
- "name":"alien-tiles",
+ "name":"alien_tiles",
  "spacing":0,
  "tilecount":158,
  "tiledversion":"1.10.2",

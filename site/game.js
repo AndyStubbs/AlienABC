@@ -13,7 +13,7 @@
 	const THROW_COOLDOWN = 20;
 	const THROW_ANIMATION_DURATION = 15;
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
-	const JUMP_FORCE = 0.125;
+	const JUMP_FORCE = 0.15;
 	const HIT_FORCE = 0.05;
 	const DEBUG = false;
 	const SHOW_FPS = false;
@@ -82,7 +82,7 @@
 		if( !game.tiles ) {
 			loadTiles();
 		}
-		const response = await fetch( "assets/tiled/alien-" + name + ".json" );
+		const response = await fetch( "assets/tiled/alien_" + name.toLowerCase() + ".json" );
 		const json = await response.json();
 
 		setTimeout( () => {
@@ -204,7 +204,7 @@
 	};
 
 	async function loadTiles() {
-		const response = await fetch( "assets/tiled/alien-tiles.json" );
+		const response = await fetch( "assets/tiled/alien_tiles.json" );
 		const json = await response.json();
 
 		game.tiles = {};
@@ -1262,9 +1262,19 @@
 				// Don't jump if player is going up
 				if( itemPlayer.body.velocity.y > -1 ) {
 					g.sounds.jump.play();
+
+					// Apply the jump force
+					let jumpForce = -JUMP_FORCE / delta;
+					console.log( "Delta: " + delta );
+					console.log( "Jumping: " + jumpForce );
 					Matter.Body.applyForce(
-						itemPlayer.body, itemPlayer.body.position, { "x": 0, "y": -JUMP_FORCE }
+						itemPlayer.body, itemPlayer.body.position, { "x": 0, "y": jumpForce }
 					);
+					setTimeout( () => {
+						// QUICK FIX: Player is not jumping high enough on certain devices
+						// Log the player's y velocity
+						console.log( itemPlayer.body.velocity.y );
+					}, 100 );
 				}
 				itemPlayer.isGrounded = false;
 			}
@@ -1536,14 +1546,8 @@
 			// Check for an actor hitting the ground
 			if( a.type === "actor" && b.type === "ground" && penetration.y < 0 ) {
 				game.bodiesMap[ pair.bodyA.id ].isGrounded = true;
-				if( game.bodiesMap[ pair.bodyA.id ].type === "player" && game.elapsed > 10 ) {
-					g.sounds.land.play();
-				}
 			} else if ( a.type === "ground" && b.type === "actor" && penetration.y > 0) {
 				game.bodiesMap[ pair.bodyB.id ].isGrounded = true;
-				if( game.bodiesMap[ pair.bodyB.id ].type === "player"  && game.elapsed > 10 ) {
-					g.sounds.land.play();
-				}
 			}
 
 			// Check for a player hitting a pickup item.

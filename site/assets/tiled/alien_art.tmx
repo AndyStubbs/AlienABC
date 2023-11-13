@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="50" height="20" tilewidth="70" tileheight="70" infinite="0" nextlayerid="7" nextobjectid="25">
  <editorsettings>
-  <export target="alien-art.json" format="json"/>
+  <export target="alien_art.json" format="json"/>
  </editorsettings>
- <tileset firstgid="1" source="alien-tiles.tsx"/>
+ <tileset firstgid="1" source="alien_tiles.tsx"/>
  <objectgroup id="2" name="Objects 2">
   <properties>
    <property name="order" type="int" value="4"/>

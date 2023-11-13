@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.10.2" name="alien-tiles" tilewidth="70" tileheight="70" tilecount="158" columns="0">
+<tileset version="1.10" tiledversion="1.10.2" name="alien_tiles" tilewidth="70" tileheight="70" tilecount="158" columns="0">
  <editorsettings>
-  <export target="alien-tiles.json" format="json"/>
+  <export target="alien_tiles.json" format="json"/>
  </editorsettings>
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="0">
