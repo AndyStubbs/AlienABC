@@ -6,11 +6,13 @@ const g = {};
 
 ( function () {
 
+	const main = {};
+
 	window.addEventListener( "DOMContentLoaded", init );
 
 	function init() {
 
-		document.body.addEventListener( "click", initSoundsAndVideo );
+		document.body.addEventListener( "click", initSounds, { "once": true } );
 
 		g.levelNames = [ "ART", "BED", "CAT", "DOG", "EYE", "FOX", "GEM", "HAT" ];
 
@@ -40,7 +42,7 @@ const g = {};
 		g.userData[ g.levelNames[ 0 ] ].locked = false;
 
 		// Set up the screen scale.
-		g.scale = { "aspect": 4 / 3, "x": 1, "y": 1, "width": 800, "height": 600 };
+		main.scale = { "aspect": 4 / 3, "x": 1, "y": 1, "width": 800, "height": 600 };
 
 		// Set up the game state.
 		g.completeLevel = function completeLevel( name, stars ) {
@@ -82,15 +84,15 @@ const g = {};
 			const titleScreenPromise = PIXI.Assets.load( "assets/images/alien_title.png" );
 
 			// Create the background.
-			g.backgrounds = await backgroundPromise;
-			g.background = new PIXI.TilingSprite(
-				g.backgrounds.textures[ "bg_purple.png" ], g.app.screen.width, g.app.screen.height
+			const backgrounds = await backgroundPromise;
+			main.background = new PIXI.TilingSprite(
+				backgrounds.textures[ "bg_purple.png" ], g.app.screen.width, g.app.screen.height
 			);
-			g.app.stage.addChildAt( g.background, 0 );
+			g.app.stage.addChildAt( main.background, 0 );
 
 			// Create the title screen container
-			g.titleScreenContainer = new PIXI.Container();
-			g.app.stage.addChild( g.titleScreenContainer );
+			main.titleScreenContainer = new PIXI.Container();
+			g.app.stage.addChild( main.titleScreenContainer );
 
 			// Resize the background.
 			resize();
@@ -102,7 +104,7 @@ const g = {};
 			g.spritesheet = await spritesheetPromise;
 
 			// Create the title screen.
-			g.titleScreen = await titleScreenPromise;
+			main.titleScreen = await titleScreenPromise;
 
 			// Show the title screen.
 			g.hideLoadingScreen( showTitleScreen );
@@ -111,10 +113,7 @@ const g = {};
 		} )();
 	}
 
-	function initSoundsAndVideo() {
-
-		// Remove the event listener
-		document.body.removeEventListener( "click", initSoundsAndVideo );
+	function initSounds() {
 
 		// Load the sounds
 		g.sounds = {
@@ -139,11 +138,11 @@ const g = {};
 
 	function showTitleScreen() {
 
-		const titleScreen = new PIXI.Sprite( g.titleScreen );
+		const titleScreen = new PIXI.Sprite( main.titleScreen );
 		titleScreen.anchor.set( 0.5, 0.5 );
 		titleScreen.x = 400;
 		titleScreen.y = 300;
-		g.titleScreenContainer.addChild( titleScreen );
+		main.titleScreenContainer.addChild( titleScreen );
 
 		// Create play button that can be used to trigger the video
 		//const buttonContainer = new PIXI.Container();
@@ -165,7 +164,7 @@ const g = {};
 		button.cursor = "pointer";
 
 		// Add to the stage
-		g.titleScreenContainer.addChild( button );
+		main.titleScreenContainer.addChild( button );
 
 		// Listen for click events
 		button.on( "pointertap", function () {
@@ -174,46 +173,56 @@ const g = {};
 			//titleScreen.destroy();
 
 			// Create the video texture
-			g.video = PIXI.Texture.from( "assets/videos/alien_video.mp4" );
+			main.video = PIXI.Texture.from( "assets/videos/alien_video.mp4" );
 
 			// Create the video sprite
-			const videoSprite = new PIXI.Sprite( g.video );
-			videoSprite.x = 0;
-			videoSprite.y = 0;
-			videoSprite.width = 800;
-			videoSprite.height = 600;
-			g.titleScreenContainer.addChild( videoSprite );
+			main.videoSprite = new PIXI.Sprite( main.video );
+			main.videoSprite.x = 0;
+			main.videoSprite.y = 0;
+			main.videoSprite.width = 800;
+			main.videoSprite.height = 600;
+			main.titleScreenContainer.addChild( main.videoSprite );
 
 			// Show level selection screen when the video ends
+			main.videoTimeout = setTimeout( stopVideoAndShowLevelSelectionScreen, 12000 );
+
 			setTimeout( function () {
-				videoSprite.destroy();
-				g.titleScreenContainer.destroy();
-				g.showLevelSelectionScreen();
-			}, 12000 );
+				document.body.addEventListener( "click", function () {
+					clearTimeout( main.videoTimeout );
+					stopVideoAndShowLevelSelectionScreen();
+				}, { "once": true } );
+			}, 0 );
 		} );
+	}
+
+	function stopVideoAndShowLevelSelectionScreen() {
+		main.videoSprite.texture.baseTexture.resource.source.pause()
+		main.videoSprite.destroy();
+		main.titleScreenContainer.destroy();
+		g.showLevelSelectionScreen();
 	}
 
 	function resize() {
 		g.app.renderer.resize( window.innerWidth, window.innerHeight );
-		if ( window.innerWidth / window.innerHeight >= g.scale.aspect ) {
-			g.scale.x = window.innerHeight * g.scale.aspect / g.scale.width;
-			g.scale.y = window.innerHeight / g.scale.height;
+		if ( window.innerWidth / window.innerHeight >= main.scale.aspect ) {
+			main.scale.x = window.innerHeight * main.scale.aspect / main.scale.width;
+			main.scale.y = window.innerHeight / main.scale.height;
 		} else {
-			g.scale.x = window.innerWidth / g.scale.width;
-			g.scale.y = window.innerWidth / g.scale.aspect / g.scale.height;
+			main.scale.x = window.innerWidth / main.scale.width;
+			main.scale.y = window.innerWidth / main.scale.aspect / main.scale.height;
 		}
-		g.app.stage.scale.x = g.scale.x;
-		g.app.stage.scale.y = g.scale.y;
-		if( g.background ) {
-			g.background.width = g.app.screen.width / g.scale.x;
-			g.background.height = g.app.screen.height / g.scale.y;
+		g.app.stage.scale.x = main.scale.x;
+		g.app.stage.scale.y = main.scale.y;
+		if( main.background ) {
+			main.background.width = g.app.screen.width / main.scale.x;
+			main.background.height = g.app.screen.height / main.scale.y;
 		}
-		if( g.titleScreenContainer ) {
+		if( main.titleScreenContainer ) {
 			let pos = g.app.stage.toLocal(
 				new PIXI.Point( g.app.screen.width / 2, g.app.screen.height / 2 )
 			);
-			g.titleScreenContainer.x = pos.x - 400;
-			g.titleScreenContainer.y = pos.y - 300;
+			main.titleScreenContainer.x = pos.x - 400;
+			main.titleScreenContainer.y = pos.y - 300;
 		}
 		g.resizeGame();
 		g.resizeUi();
