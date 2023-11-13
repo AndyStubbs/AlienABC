@@ -18,6 +18,7 @@ const g = {};
 		document.body.addEventListener( "click", initSounds, { "once": true } );
 
 		g.levelNames = [ "ART", "BED", "CAT", "DOG", "EYE", "FOX", "GEM", "HAT" ];
+		g.levelsImplemented = [ "ART", "BED", "CAT" ];
 
 		// Load user data from local storage.
 		g.userData = JSON.parse( localStorage.getItem( "alien" ) );
@@ -26,10 +27,12 @@ const g = {};
 				"player": "p1",
 			};
 		}
+
 		let lastLevel = null;
 		for( let i = 0; i < g.levelNames.length; i++ ) {
 			if( !g.userData[ g.levelNames[ i ] ] ) {
 				g.userData[ g.levelNames[ i ] ] = {
+					"name": g.levelNames[ i ],
 					"locked": true,
 					"stars": 0,
 					"nextLevel": null
@@ -53,7 +56,7 @@ const g = {};
 			const nextLevel = g.userData[ level.nextLevel ];
 
 			// Unlock the next level.
-			if( nextLevel ) {
+			if( nextLevel && g.levelsImplemented.includes( nextLevel.name ) ) {
 				nextLevel.locked = false;
 				nextLevel.stars = Math.max( nextLevel.stars, stars );
 			}

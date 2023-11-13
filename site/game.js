@@ -21,7 +21,7 @@
 	const enemies = {
 		"Slime": {
 			"health": 10,
-			"damage": 40,
+			"damage": 10,
 			"speed": -1,
 			"bodyWidthModifier": 0.8,
 			"animationsData": [
@@ -31,6 +31,20 @@
 				"walk", "slimeWalk", 2, 0.05,
 				"hurt", "slimeWalk1.png", 0, 0,
 				"dead", "slimeDead.png", 0, 0,
+			]
+		},
+		"Snail": {
+			"health": 60,
+			"damage": 20,
+			"speed": -0.5,
+			"bodyWidthModifier": 0.9,
+			"animationsData": [
+				"stand", "snailWalk1.png", 0, 0,
+				"front", "snailWalk1.png", 0, 0,
+				"jump", "snailWalk1.png", 0, 0,
+				"walk", "snailWalk", 2, 0.04,
+				"hurt", "snailShell.png", 0, 0,
+				"dead", "snailShell_upsidedown.png", 0, 0,
 			]
 		}
 	};
@@ -81,6 +95,9 @@
 	g.loadLevel = async function ( name ) {
 		if( !game.tiles ) {
 			loadTiles();
+		}
+		if( !g.levelsImplemented.includes( name ) ) {
+			throw new Error( "Level not implemented: " + name );
 		}
 		const response = await fetch( "assets/tiled/alien_" + name.toLowerCase() + ".json" );
 		const json = await response.json();
@@ -529,6 +546,9 @@
 	}
 
 	function showControls() {
+		if( !game.onscreenControls ) {
+			return;
+		}
 		game.onscreenControls.visible = true;
 
 		// Remove the event handler
@@ -536,6 +556,9 @@
 	}
 
 	function hideControls( noEvent ) {
+		if( !game.onscreenControls ) {
+			return;
+		}
 		game.onscreenControls.visible = false;
 
 		// Add the event handler
@@ -1330,7 +1353,12 @@
 	}
 
 	function throwStar( itemPlayer, isDucking ) {
+		if( game.player.stars <= 0 ) {
+			return;
+		}
 		g.sounds.throw.play();
+		game.player.stars -= 1;
+		updateHud();
 		let yVelocity;
 		if( isDucking ) {
 			yVelocity = -1.5 + itemPlayer.body.velocity.y / 2;
@@ -1805,21 +1833,28 @@
 		// Update the game stats
 		if( pickup.data.isLetter ) {
 			g.sounds.letter.play();
+			game.player.health += 30;
+			game.player.health = Math.min( game.player.health, 100 );
+
 			const letter = pickup.text;
 			const index = game.word.indexOf( letter );
 			game.player.letters = game.player.letters.substring( 0, index ) + letter +
 				game.player.letters.substring( index + 1 );
 			
+			updateHud();
+
 			// Check if the word is complete
 			if( game.player.letters === game.word ) {
 				setTimeout( () => {
 					openExit();
 				}, 500 );
 			}
-			updateHud();
 		} else if( pickup.isStar ) {
 			g.sounds.pickup.play();
 			game.player.stars += 1;
+			game.player.stars = Math.min( game.player.stars, 99 );
+			game.player.health += 15;
+			game.player.health = Math.min( game.player.health, 100 );
 			updateHud();
 		}
 	}
