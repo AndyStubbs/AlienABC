@@ -95,7 +95,9 @@
 
 	g.startLevel = function ( stars ) {
 		if( !game.level || !game.tiles ) {
-			setTimeout( g.startLevel, 100 );
+			setTimeout( () => {
+				g.startLevel( stars );
+			}, 100 );
 			return;
 		}
 
@@ -135,6 +137,8 @@
 		// Create the HUD container.
 		createHud();
 		updateHud();
+		hideControls();
+
 		game.hud.alpha = 0;
 
 		// Create the physics world.
@@ -273,7 +277,11 @@
 		menuButton.y = 10;
 		menuButton.interactive = true;
 		menuButton.on( "pointertap", () => {
-			closeLevel( g.showLevelSelectionScreen );
+			g.sounds.click.play();
+			setTimeout( () => {
+				hideControls( true );
+				closeLevel( g.showLevelSelectionScreen );
+			}, 0 );
 		} );
 		hud.addChild( menuButton );
 
@@ -389,6 +397,154 @@
 			fpsText.y = 60;
 			hud.addChild( fpsText );
 			game.hud.fpsText = fpsText;
+		}
+
+		// Create the onscreen controls
+		createOnscreenControls();
+	}
+
+	function createOnscreenControls() {
+
+		// If the controls already exist, update their position and return
+		if( game.onscreenControls ) {
+			game.onscreenControls.scale.x = 1 / g.app.stage.scale.x;
+			game.onscreenControls.scale.y = 1 / g.app.stage.scale.y;
+			game.onscreenControls.leftButton.y = g.app.screen.height - 143;
+			game.onscreenControls.rightButton.y = g.app.screen.height - 143;
+			game.onscreenControls.jumpButton.y = g.app.screen.height - 204;
+			game.onscreenControls.duckButton.y = g.app.screen.height - 83;
+			game.onscreenControls.throwButton.x = g.app.screen.width - 110;
+			game.onscreenControls.throwButton.y = g.app.screen.height - 100;
+			return;
+		}
+
+		// Make the stage interactive
+		g.app.stage.interactive = true;
+
+		// Create the onscreen controls container
+		game.onscreenControls = new PIXI.Container();
+		game.onscreenControls.scale.x = 1 / g.app.stage.scale.x;
+		game.onscreenControls.scale.y = 1 / g.app.stage.scale.y;
+		game.onscreenControls.visible = false;
+		g.app.stage.addChild( game.onscreenControls );
+
+		// Create the left button
+		const leftButton = new PIXI.Sprite(
+			g.uiSprites.textures[ "Controls/transparentLight/transparentLight22.png" ]
+		);
+		leftButton.x = 10;
+		leftButton.y = g.app.screen.height - 143;
+		leftButton.interactive = true;
+		leftButton.on( "pointerdown", () => {
+			game.keys[ "ArrowLeft" ] = true;
+			leftButton.tint = "#555555";
+		} );
+		leftButton.on( "pointerup", () => {
+			game.keys[ "ArrowLeft" ] = false;
+			leftButton.tint = "#ffffff";
+		} );
+		game.onscreenControls.addChild( leftButton );
+		game.onscreenControls.leftButton = leftButton;
+
+		// Create the right button
+		const rightButton = new PIXI.Sprite(
+			g.uiSprites.textures[ "Controls/transparentLight/transparentLight23.png" ]
+		);
+		rightButton.x = 131;
+		rightButton.y = g.app.screen.height - 143;
+		rightButton.interactive = true;
+		rightButton.on( "pointerdown", () => {
+			game.keys[ "ArrowRight" ] = true;
+			rightButton.tint = "#555555";
+		} );
+		rightButton.on( "pointerup", () => {
+			game.keys[ "ArrowRight" ] = false;
+			rightButton.tint = "#ffffff";
+		} );
+		game.onscreenControls.addChild( rightButton );
+		game.onscreenControls.rightButton = rightButton;
+
+		// Create the jump button
+		const jumpButton = new PIXI.Sprite(
+			g.uiSprites.textures[ "Controls/transparentLight/transparentLight24.png" ]
+		);
+		jumpButton.x = 71;
+		jumpButton.y = g.app.screen.height - 204;
+		jumpButton.interactive = true;
+		jumpButton.on( "pointerdown", () => {
+			game.keys[ "ArrowUp" ] = true;
+			jumpButton.tint = "#555555";
+		} );
+		jumpButton.on( "pointerup", () => {
+			game.keys[ "ArrowUp" ] = false;
+			jumpButton.tint = "#ffffff";
+		} );
+		game.onscreenControls.addChild( jumpButton );
+		game.onscreenControls.jumpButton = jumpButton;
+
+		// Create the duck button
+		const duckButton = new PIXI.Sprite(
+			g.uiSprites.textures[ "Controls/transparentLight/transparentLight25.png" ]
+		);
+		duckButton.x = 71;
+		duckButton.y = g.app.screen.height - 83;
+		duckButton.interactive = true;
+		duckButton.on( "pointerdown", () => {
+			game.keys[ "ArrowDown" ] = true;
+			duckButton.tint = "#555555";
+		} );
+		duckButton.on( "pointerup", () => {
+			game.keys[ "ArrowDown" ] = false;
+			duckButton.tint = "#ffffff";
+		} );
+		game.onscreenControls.addChild( duckButton );
+		game.onscreenControls.duckButton = duckButton;
+
+		// Create the throw button
+		const throwButton = new PIXI.Sprite(
+			g.uiSprites.textures[ "Controls/transparentLight/transparentLight26.png" ]
+		);
+		throwButton.x = g.app.screen.width - 110;
+		throwButton.y = g.app.screen.height - 100;
+		throwButton.interactive = true;
+		throwButton.on( "pointerdown", () => {
+			game.keys[ " " ] = true;
+			throwButton.tint = "#555555";
+		} );
+		throwButton.on( "pointerup", () => {
+			game.keys[ " " ] = false;
+			throwButton.tint = "#ffffff";
+		} );
+		game.onscreenControls.addChild( throwButton );
+		game.onscreenControls.throwButton = throwButton;
+
+		// Clear the keys when the user stops touching the screen
+		g.app.stage.on( "pointerup", () => {
+			game.keys = {};
+			leftButton.tint = "#ffffff";
+			rightButton.tint = "#ffffff";
+			jumpButton.tint = "#ffffff";
+			duckButton.tint = "#ffffff";
+			throwButton.tint = "#ffffff";
+		} );
+	}
+
+	function showControls() {
+		game.onscreenControls.visible = true;
+
+		// Remove the event handler
+		g.app.stage.off( "pointerdown", showControls );
+	}
+
+	function hideControls( noEvent ) {
+		game.onscreenControls.visible = false;
+
+		// Add the event handler
+		if( !noEvent ) {
+
+			// If the user touches the screen then show the onscreen controls
+			g.app.stage.interactive = true;
+			g.app.stage.on( "pointerdown", showControls );
 		}
 	}
 
@@ -1358,6 +1514,7 @@
 
 	function keydown( e ) {
 		game.keys[ e.key ] = true;
+		hideControls();
 	}
 
 	function keyup( e ) {
@@ -1488,7 +1645,8 @@
 			g.sounds.lose.play();
 		}, 150 );
 
-		// Go back to title screen
+		// Restart the level
+		hideControls( true );
 		setTimeout( () => {
 			closeLevel( () => {
 				g.startLevel( startingStars );
@@ -1708,6 +1866,7 @@
 			game.player.isActive = false;
 			game.fadeItems.push( actor );
 			g.completeLevel( game.word, game.player.stars );
+			hideControls( true );
 			setTimeout( () => {
 				closeLevel( g.showLevelSelectionScreen );
 			}, 2000 );
