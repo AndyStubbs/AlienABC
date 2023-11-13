@@ -5,6 +5,13 @@
 		"fadeItems": [],
 		"action": () => {},
 		"buttons": [],
+		"buttonsActive": false,
+		"container": null,
+		"loadingScreen": null,
+		"titleScreen": null,
+		"p1Button": null,
+		"p2Button": null,
+		"p3Button": null
 	};
 
 	g.initUI = function () {
@@ -45,6 +52,32 @@
 
 		// Unlock the levels.
 		unlockLevels();
+	};
+
+	g.resizeUi = function resizeUi() {
+		if( ui.titleScreen ) {
+			let pos = g.app.stage.toLocal(
+				new PIXI.Point( g.app.screen.width / 2, 0 )
+			);
+			ui.titleScreen.titleText.x = pos.x;
+			ui.titleScreen.titleText.y = pos.y + 34;
+			pos = g.app.stage.toLocal(
+				new PIXI.Point( g.app.screen.width / 2, g.app.screen.height / 2 )
+			);
+			ui.panel.x = pos.x - 275;
+			ui.panel.y = pos.y - 125;
+
+			pos = g.app.stage.toLocal(
+				new PIXI.Point( 0, g.app.screen.height / 2 )
+			);
+
+			ui.p1Button.x = pos.x + 15;
+			ui.p1Button.y = pos.y - 100;
+			ui.p2Button.x = pos.x + 15;
+			ui.p2Button.y = pos.y;
+			ui.p3Button.x = pos.x + 15;
+			ui.p3Button.y = pos.y + 100;
+		}
 	};
 
 	function createLoadingScreen() {
@@ -90,18 +123,18 @@
 			"dropShadowBlur": 4,
 			"align": "center"
 		} );
-		ui.titleScreen.titleText.anchor.set( 0.5, 0.5 );
+		ui.titleScreen.titleText.anchor.set( 0.5, 0 );
 		let pos = g.app.stage.toLocal(
-			new PIXI.Point( g.app.screen.width / 2, 100 )
+			new PIXI.Point( g.app.screen.width / 2, 0 )
 		);
 		ui.titleScreen.titleText.x = pos.x;
-		ui.titleScreen.titleText.y = pos.y;
+		ui.titleScreen.titleText.y = pos.y + 34;
 		ui.titleScreen.container.addChild( ui.titleScreen.titleText );
 
 		// Create the level selection panel.
 		ui.titleScreen.levelSelectionPanel = new PIXI.Container();
 		ui.titleScreen.container.addChild( ui.titleScreen.levelSelectionPanel );
-		const panelWidth = 600;
+		const panelWidth = 550;
 		const panelHeight = 350;
 		const panel = new PIXI.Graphics();
 		panel.beginFill( "#000000", 0.5 );
@@ -113,10 +146,11 @@
 		panel.x = pos.x - panelWidth / 2;
 		panel.y = pos.y - panelHeight / 2 + 40;
 		ui.titleScreen.levelSelectionPanel.addChild( panel );
+		ui.panel = panel;
 
 		// Create the level buttons.
 		const buttons = g.levelNames.slice( 0, 9 );
-		let x = 100;
+		let x = 80;
 		let y = 90;
 		buttons.forEach( button => {
 			const levelButton = createButton( button, x, y, () => {
@@ -126,8 +160,8 @@
 			} );
 			panel.addChild( levelButton );
 			x += 130;
-			if( x > panelWidth - 100 ) {
-				x = 100;
+			if( x > panelWidth - 80 ) {
+				x = 80;
 				y += 150;
 			}
 		} );
@@ -151,7 +185,7 @@
 		let pos = g.app.stage.toLocal(
 			new PIXI.Point( 0, g.app.screen.height / 2 )
 		);
-		button.x = pos.x + 20;
+		button.x = pos.x + 15;
 		button.y = pos.y + y;
 		button.tint = "#454545";
 

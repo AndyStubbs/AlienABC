@@ -15,7 +15,7 @@
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
 	const JUMP_FORCE = 0.125;
 	const HIT_FORCE = 0.05;
-	const DEBUG = true;
+	const DEBUG = false;
 	const SHOW_FPS = true;
 	const MIDDLE_LAYER = "Middle 1";
 	const enemies = {

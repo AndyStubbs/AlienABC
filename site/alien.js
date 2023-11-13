@@ -225,6 +225,7 @@ const g = {};
 			g.titleScreenContainer.y = pos.y - 300;
 		}
 		g.resizeGame();
+		g.resizeUi();
 	}
 
 	function loadSound( src, volume, rate ) {
