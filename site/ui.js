@@ -214,7 +214,9 @@
 			button.tint = "#454545";
 		} );
 		button.on( "pointerdown", () => {
-			g.sounds.click.play();
+			if( g.sounds ) {
+				g.sounds.click.play();
+			}
 			g.userData.player = player;
 			g.saveUserData();
 			ui.p1Button.texture = g.uiSprites.textures[ "grey_panel.png" ];

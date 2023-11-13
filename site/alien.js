@@ -10,6 +10,8 @@ const g = {};
 
 	function init() {
 
+		document.body.addEventListener( "click", initSoundsAndVideo );
+
 		g.levelNames = [ "ART", "BED", "CAT", "DOG", "EYE", "FOX", "GEM", "HAT" ];
 
 		// Load user data from local storage.
@@ -70,26 +72,6 @@ const g = {};
 		g.initUI();
 		g.showLoadingScreen();
 
-		// Load the sounds
-		g.sounds = {
-			"jump": loadSound( "assets/sounds/jump.wav", 0.3 ),
-			"pickup": loadSound( "assets/sounds/pickup.wav", 0.6 ),
-			"letter": loadSound( "assets/sounds/letter.wav", 0.3, 1.5 ),
-			"open": loadSound( "assets/sounds/open-door.ogg", 0.6 ),
-			"win": loadSound( "assets/sounds/win.mp3", 0.6 ),
-			"explosion": loadSound( "assets/sounds/explosion.wav", 0.3 ),
-			"explosion2": loadSound( "assets/sounds/explosion2.wav", 0.3 ),
-			"enemyHit": loadSound( "assets/sounds/enemy-hit.wav", 0.6 ),
-			"playerHit": loadSound( "assets/sounds/player-hit.wav", 0.6 ),
-			"walk1": loadSound( "assets/sounds/walk1.wav", 0.25 ),
-			"walk2": loadSound( "assets/sounds/walk2.wav", 0.25 ),
-			"land": loadSound( "assets/sounds/walk2.wav", 0.25 ),
-			"throw": loadSound( "assets/sounds/throw.wav", 0.4 ),
-			"lose": loadSound( "assets/sounds/lose.ogg", 1 ),
-			"intro": loadSound( "assets/sounds/intro.ogg", 0.6 ),
-			"click": loadSound( "assets/sounds/click.wav", 0.2 ),
-		};
-
 		// Load the assets
 		( async () => {
 			const backgroundPromise = PIXI.Assets.load( "assets/backgrounds.json" );
@@ -123,10 +105,36 @@ const g = {};
 			g.titleScreen = await titleScreenPromise;
 
 			// Show the title screen.
-			//g.hideLoadingScreen( showTitleScreen );
-			g.hideLoadingScreen( g.showLevelSelectionScreen );
+			g.hideLoadingScreen( showTitleScreen );
+			//g.hideLoadingScreen( g.showLevelSelectionScreen );
 
 		} )();
+	}
+
+	function initSoundsAndVideo() {
+
+		// Remove the event listener
+		document.body.removeEventListener( "click", initSoundsAndVideo );
+
+		// Load the sounds
+		g.sounds = {
+			"jump": loadSound( "assets/sounds/jump.wav", 0.3 ),
+			"pickup": loadSound( "assets/sounds/pickup.wav", 0.6 ),
+			"letter": loadSound( "assets/sounds/letter.wav", 0.3, 1.5 ),
+			"open": loadSound( "assets/sounds/open-door.ogg", 0.6 ),
+			"win": loadSound( "assets/sounds/win.mp3", 0.6 ),
+			"explosion": loadSound( "assets/sounds/explosion.wav", 0.3 ),
+			"explosion2": loadSound( "assets/sounds/explosion2.wav", 0.3 ),
+			"enemyHit": loadSound( "assets/sounds/enemy-hit.wav", 0.6 ),
+			"playerHit": loadSound( "assets/sounds/player-hit.wav", 0.6 ),
+			"walk1": loadSound( "assets/sounds/walk1.wav", 0.25 ),
+			"walk2": loadSound( "assets/sounds/walk2.wav", 0.25 ),
+			"land": loadSound( "assets/sounds/walk2.wav", 0.25 ),
+			"throw": loadSound( "assets/sounds/throw.wav", 0.4 ),
+			"lose": loadSound( "assets/sounds/lose.ogg", 1 ),
+			"intro": loadSound( "assets/sounds/intro.ogg", 0.6 ),
+			"click": loadSound( "assets/sounds/click.wav", 0.2 ),
+		};
 	}
 
 	function showTitleScreen() {
@@ -165,11 +173,11 @@ const g = {};
 			button.destroy();
 			//titleScreen.destroy();
 
-			// Play the video
-			const video = PIXI.Texture.from( "assets/videos/alien_video.mp4" );
+			// Create the video texture
+			g.video = PIXI.Texture.from( "assets/videos/alien_video.mp4" );
 
 			// Create the video sprite
-			const videoSprite = new PIXI.Sprite( video );
+			const videoSprite = new PIXI.Sprite( g.video );
 			videoSprite.x = 0;
 			videoSprite.y = 0;
 			videoSprite.width = 800;
