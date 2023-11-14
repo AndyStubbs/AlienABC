@@ -1132,7 +1132,6 @@
 		if( game.worldBounds && !item.outOfBounds ) {
 			if( body.position.x < game.worldBounds.bounds.min.x ||
 				body.position.x > game.worldBounds.bounds.max.x ||
-				body.position.y < game.worldBounds.bounds.min.y ||
 				body.position.y > game.worldBounds.bounds.max.y
 			) {
 				item.outOfBounds = true;
