@@ -13,7 +13,8 @@
 	const THROW_COOLDOWN = 20;
 	const THROW_ANIMATION_DURATION = 15;
 	const MAX_VELOCITY_Y_FOR_GROUNDED = 2.5;
-	const JUMP_FORCE = 0.15;
+	const GRAVITY_SCALE = 0.0007;
+	const JUMP_FORCE = 0.12;
 	const HIT_FORCE = 0.05;
 	const DEBUG = false;
 	const SHOW_FPS = false;
@@ -191,6 +192,8 @@
 		// Run the physics simulation.
 		game.runner = Matter.Runner.create();
 		Matter.Runner.run( game.runner, game.engine );
+
+		game.engine.gravity.scale = GRAVITY_SCALE;
 
 		// Set the initial camera position
 		moveCamera();
@@ -1285,7 +1288,7 @@
 					g.sounds.jump.play();
 
 					// Apply the jump force
-					let jumpForce = -JUMP_FORCE / delta;
+					let jumpForce = -JUMP_FORCE;
 					Matter.Body.applyForce(
 						itemPlayer.body, itemPlayer.body.position, { "x": 0, "y": jumpForce }
 					);
@@ -1375,7 +1378,7 @@
 		}, game.container );
 		Matter.World.add( game.engine.world, star.body );
 		Matter.Body.setVelocity( star.body, {
-			"x": itemPlayer.animation.scale.x * 10,
+			"x": itemPlayer.animation.scale.x * 7,
 			"y": yVelocity
 		} );
 		Matter.Body.setAngularVelocity( star.body, 0.25 );
