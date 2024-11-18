@@ -25,7 +25,7 @@ a word and unlock doors to progress to the next stage.
 
 ## Play Online
 You can play the game online at:  
-[Alien ABC on Andy's Web Games](https://www.andyswebgames.com/games/alienabc)
+[Alien ABC on Andy's Web Games](https://www.andyswebgames.com/games/alien)
 
 ---
 ## How It Was Built
