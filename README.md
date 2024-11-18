@@ -1,12 +1,14 @@
 # Alien ABC
 
-Alien ABC is a fun and educational 2D platformer where players control an alien on a mission to spell words by collecting letters. Each level challenges the player to gather the correct letters to form a word and unlock doors to progress to the next stage. It's perfect for players looking for a mix of entertainment and learning!
+Alien ABC is a fun and educational 2D platformer where players control an alien on a mission to spell 
+words by collecting letters. Each level challenges the player to gather the correct letters to form 
+a word and unlock doors to progress to the next stage.
 
 ## Features
 - **Platformer gameplay**: Jump, run, and explore levels while avoiding enemies.
 - **Educational twist**: Spell different words to advance through levels.
 - **Dynamic combat**: Collect stars and throw them at enemies to clear your path.
-- **Levels**: Each level introduces new words to spell, stars to collect, and obstacles to overcome.
+- **Levels**: Each level introduces a new word to spell.
 
 ---
 
