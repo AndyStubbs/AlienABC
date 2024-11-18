@@ -3,13 +3,29 @@
 Alien ABC is a fun and educational 2D platformer where players control an alien on a mission to spell words by collecting letters. Each level challenges the player to gather the correct letters to form a word and unlock doors to progress to the next stage. It's perfect for players looking for a mix of entertainment and learning!
 
 ## Features
-- **Platformer gameplay**: Jump, run, and explore levels while avoiding obstacles.
+- **Platformer gameplay**: Jump, run, and explore levels while avoiding enemies.
 - **Educational twist**: Spell different words to advance through levels.
-- **Challenging levels**: Each level introduces new words to spell and obstacles to overcome.
-- **Customizable**: Designed with flexibility in mind for future enhancements.
+- **Dynamic combat**: Collect stars and throw them at enemies to clear your path.
+- **Levels**: Each level introduces new words to spell, stars to collect, and obstacles to overcome.
 
 ---
 
+## How to Play
+- **Movement**: Use the **Arrow Keys** to move your alien.
+  - **Left/Right Arrows**: Move left and right.
+  - **Up Arrow**: Jump.
+  - **Down Arrow**: Duck.
+- **Attack**: Press **Spacebar** to throw stars.
+- **Duck** and **Attack**: to throw stars on lower trajectory to hit nearby enemies.
+- **Objective**: Collect letters to spell the word of the level and open the door to the next stage. Besides letters, you can also pick up stars to defend yourself against enemies.
+
+---
+
+## Play Online
+You can play the game online at:  
+[Alien ABC on Andy's Web Games](https://www.andyswebgames.com/games/alienabc)
+
+---
 ## How It Was Built
 
 **Game engine and libraries:**
