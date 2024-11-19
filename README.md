@@ -63,3 +63,9 @@ npm install
 
 3. Open your web browser and navigate to:
 ```http://localhost:8080/site/```
+
+
+## Credits
+
+- **Graphics**: Most of the graphics in AlienABC were based on work by [kenney.nl](https://kenney.nl), a fantastic resource for free game assets.
+
